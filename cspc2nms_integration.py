@@ -202,7 +202,6 @@ def config():
                     break
                 config['server_p'] = server_p
                 config['port'] = '443'
-                print(config)
                 connectivity = server_connectivity_check(config)
                 if connectivity:
                     config_data.append(config)
