@@ -6,6 +6,63 @@ import json
 import os
 import subprocess
 import urllib3
+
+class NetboxAPI:
+    def __init__(self, server_config):
+        self.server_type = server_config.get('server_type')
+        self.token = server_config.get('token')
+        self.ip = server_config.get('server_ip')
+        self.port = server_config.get('port', '8000')
+        self.headers = {'Content-Type': 'application/json',
+                        'Authorization': f'Token {self.token}'}
+        self.url_all_devices = f'https://{self.ip}/api/dcim/devices/?manufacturer=cisco&status=active&'
+        self.connectivity = False
+        self.max_limit = 50
+    def check_connectivity(self):
+        print(self.url_all_devices)
+        try:
+            response = requests.get(self.url_all_devices, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                print("--------------------------------------------------------------------------------------------")
+                print(
+                    f" Connection to {self.server_type} server: {self.ip} was SUCCESSFUL. Added server to the configuration ")
+                print("--------------------------------------------------------------------------------------------")
+                self.connectivity = True
+            else:
+                print(
+                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
+        except Exception as e:
+            print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
+    def get_all_devices(self):
+        payload = {
+            "manufacturer":"cisco",
+            "has_primary_ip": True,
+            "status": "active"
+        }
+        devices = []
+        ip2hostname = []
+        url = self.url_all_devices
+        while url:
+            print(f'url: {url}')
+            response = requests.get(url, json=payload,headers=self.headers)
+            if response.status_code == 200:
+                data = response.json()
+
+                devices += data['results']
+
+                url = data['next']  # get the next page URL, if any
+            else:
+                print(f'Error getting devices: {response.status_code}')
+                return None
+        print(f'all device count: {len(devices)}')
+        for device in devices:
+            
+            ip2hostname.append(
+                {"ip": device.get('primary_ip4').get('address').split('/')[0], "hostname": device.get("name")})
+        return ip2hostname
+
+
+
 class SD_wan_authentication:
     @staticmethod
     def get_jsessionid(vmanage_host, vmanage_port, username, password):
@@ -21,6 +78,7 @@ class SD_wan_authentication:
                 jsessionid = cookies.split(";")
                 return(jsessionid[0])
             except:
+                logging.error("No valid JSESSION ID returned")
                 print("No valid JSESSION ID returned\n")
                 return None
         else:
@@ -163,6 +221,13 @@ def server_connectivity_check(server_info):
             print(
                 f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')}, please check credentials or user role or firewall")
             return False
+    elif server_info.get("server_type") == "NETBOX":
+        netbox_server = NetboxAPI(server_info)
+        netbox_server.check_connectivity()
+        if netbox_server.connectivity:
+            return True
+        else:
+            return False
 def config():
     """this function will open config file (config.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
     if  os.path.isfile('./config.json'):
@@ -174,18 +239,17 @@ def config():
 
     else:
         print("!!!Config.json file not found!!! .... will create config file")
-        #print("Please prepare ip, user, password for server (user should have NBI Read and NBI Credential roles)\n")
         config_data = []
         while True:
             command = input(
                 "Commands: \na - add server\nc - create configuration file and run the script\ne - exit\nPlease enter command: ").strip().lower()
 
             if command == "a":
-                servers = {"1": "EPNM/PI","2":"DNAC","3":"SD-WAN"}
+                servers = {"1": "EPNM/PI","2":"DNAC","3":"SD-WAN","4":"NETBOX"}
 
                 config = {}
-                server_type = input("\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n Please provide server type: ").strip()
-                if not server_type or server_type not in ("1","2","3"):
+                server_type = input("\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n Please provide server type: ").strip()
+                if not server_type or server_type not in ("1","2","3","4"):
                     break
                 config["server_type"] = servers.get(server_type)
                 print(f"server type is {servers.get(server_type)}")
@@ -193,15 +257,25 @@ def config():
                 if not server_ip:
                     break
                 config['server_ip'] = server_ip
-                server_u = input("Please provide server User: ").strip()
-                if not server_u:
-                    break
-                config['server_u'] = server_u
-                server_p = getpass.getpass("Please provide server password: ").strip()
-                if not server_p:
-                    break
-                config['server_p'] = server_p
-                config['port'] = '443'
+                #server_port = input("please provide server port (if you don't know, leave the field blank): ").strip()
+                #if server_port:
+                #    config['port'] = server_port
+
+                if server_type == "4":
+                    server_token = input("please provide server token: ").strip()
+                    if not server_token:
+                        break
+                    config['token'] = server_token
+                if server_type in ("1","2","3"):
+                    server_u = input("Please provide server User: ").strip()
+                    if not server_u:
+                        break
+                    config['server_u'] = server_u
+                    server_p = getpass.getpass("Please provide server password: ").strip()
+                    if not server_p:
+                        break
+                    config['server_p'] = server_p
+                #print(config)
                 connectivity = server_connectivity_check(config)
                 if connectivity:
                     config_data.append(config)
@@ -223,7 +297,7 @@ def main():
 
     print("######################################################################")
     print("###            script author  - abalevyc@cisco.com                 ###")
-    print("###          CSPC integration with PI/EPNM/DNAC/SD-WAN             ###")
+    print("###        CSPC integration with PI/EPNM/DNAC/SD-WAN/NETBOX        ###")
     print("######################################################################")
     configuration = config()
     if not configuration:
@@ -260,6 +334,16 @@ def main():
                         list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
                         logging.info(
                             f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
+                        for i in dict_ip_2_hostname:
+                            file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                        logging.info(
+                            f"======== Finished polling {server.get('server_type')} server: {server.get('server_ip')} ========")
+                    elif server.get('server_type')  == 'NETBOX':
+                        logging.info(
+                            f"======== start polling {server.get('server_type')} server: {server.get('server_ip')} ========")
+                        netbox_server = NetboxAPI(server)
+                        dict_ip_2_hostname = netbox_server.get_all_devices()
                         for i in dict_ip_2_hostname:
                             file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
                             final_device_count += 1
