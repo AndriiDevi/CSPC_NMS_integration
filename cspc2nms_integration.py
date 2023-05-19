@@ -24,7 +24,7 @@ class NetbrainAPI:
     def check_connectivity(self):
         print(self.url_all_devices)
         try:
-            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10)
+            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -38,7 +38,7 @@ class NetbrainAPI:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
     def get_token(self):
         try:
-            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10)
+            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10 ,verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
