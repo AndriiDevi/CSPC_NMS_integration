@@ -360,7 +360,7 @@ def config():
                 "Commands: \na - add server\nc - create configuration file and run the script\ne - exit\nPlease enter command: ").strip().lower()
 
             if command == "a":
-                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX"}
+                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5": "NETBRAIN"}
 
                 config = {}
                 server_type = input(
