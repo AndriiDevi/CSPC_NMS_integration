@@ -482,7 +482,7 @@ def config():
                 #    config['port'] = server_port
 
                 if server_type in ("4","6"):
-                    server_token = input("please provide server token: ").strip()
+                    server_token = getpass.getpass("please provide server token: ").strip()
                     if not server_token:
                         break
                     config['token'] = server_token
