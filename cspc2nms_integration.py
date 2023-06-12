@@ -6,7 +6,95 @@ import json
 import os
 import subprocess
 import urllib3
- 
+
+
+class CdoAPI:
+    def __init__(self, server_config):
+        self.server_type = server_config.get('server_type')
+        self.token = server_config.get('token')
+        self.ip = server_config.get('server_ip')
+        self.port = server_config.get('port', '443')
+        self.headers = {'Content-Type': 'application/json',
+                        'Authorization': f'Bearer {self.token}'}
+        self.url_all_devices = f'https://{self.ip}/aegis/rest/v1/services/targets/devices'
+        self.connectivity = False
+        self.max_limit = 50
+        self.params = {
+            'offset': '0',
+            'limit': '50',
+            #'q': '(model:false)',
+            'resolve': '[targets/devices.{name,ipv4,state,DeviceConnectivityState,connectivityState,connectivityError}]'
+        }
+
+    def check_connectivity(self):
+        """Make one API call to device api and return self.connectivity = True if successfull"""
+        print(self.url_all_devices)
+        try:
+            response = requests.get(self.url_all_devices, params=self.params, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                print("--------------------------------------------------------------------------------------------")
+                print(
+                    f" Connection to {self.server_type} server: {self.ip} was SUCCESSFUL. Added server to the configuration ")
+                print("--------------------------------------------------------------------------------------------")
+                self.connectivity = True
+            else:
+                print(
+                    f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
+        except Exception as e:
+            print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
+
+    def get_all_devices(self):
+        all_devices = []  # List to store all devices
+
+        offset = 0
+
+        while True:
+            self.params['offset'] = str(offset)
+            response = requests.get(self.url_all_devices, params=self.params, headers=self.headers)
+            devices = response.json()
+            #print(devices)
+            if response.status_code != 200:
+                print(f"Unable to connect to {self.server_type} server: {self.ip} Response status code {response.status_code}")
+                logging.error(f"Unable to connect to {self.server_type} server: {self.ip} Response status code {response.status_code}")
+                break
+            # Check if devices is empty
+            if not devices:
+                break
+
+            all_devices.extend(devices)
+
+            # Increment offset for the next page
+            offset += self.max_limit
+
+        # Process all_devices list and extract name and ip
+        ip2hostname = []
+        for device in all_devices:
+            print(device)
+            name = device.get('name')
+            ipv4 = device.get('ipv4')
+            if name and ipv4:
+                if ':' in ipv4:
+                    ip = ipv4.split(':')[0].strip()  # Extract IP address without port
+                else:
+                    ip = ipv4.strip()  # Use the IP address as is
+                ip2hostname.append({'ip': ip, 'hostname': name})
+            elif name:
+                ip2hostname.append({'ip': name, 'hostname': name})
+                logging.info(f"no ip found for device {name}")
+
+            elif ipv4:
+                if ':' in ipv4:
+                    ip = ipv4.split(':')[0].strip()  # Extract IP address without port
+                else:
+                    ip = ipv4.strip()  # Use the IP address as is
+                ip2hostname.append({'ip': ip, 'hostname': ip})
+                logging.info(f"No hostname found for device {name}")
+            else:
+                logging.error(f"device response below does not contain IP and hostname info {device}")
+        # Return the result list
+        return ip2hostname
+
+
 class NetbrainAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -21,12 +109,14 @@ class NetbrainAPI:
         self.max_limit = 50
         self.username = server_config.get('server_u')
         self.password = server_config.get('server_p')
-        self.body = {"username":self.username,"password":self.password,"authentication_id":self.authentication_id}
+        self.body = {"username": self.username, "password": self.password, "authentication_id": self.authentication_id}
+
     def check_connectivity(self):
         print(self.url_all_devices)
         print(self.username)
         try:
-            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers, timeout=10, verify=False)
+            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers,
+                                     timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -39,9 +129,11 @@ class NetbrainAPI:
                 print(response.text)
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
+
     def get_token(self):
         try:
-            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers, timeout=10, verify=False)
+            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers,
+                                     timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -52,10 +144,13 @@ class NetbrainAPI:
             else:
                 print(
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
-                logging.error(f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
+                logging.error(
+                    f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
-            logging.error(f"unable to create token for {self.server_type} server {self.ip} , error: {response.status_code} for url: {response.url}")
+            logging.error(
+                f"unable to create token for {self.server_type} server {self.ip} , error: {response.status_code} for url: {response.url}")
+
     def get_all_devices(self):
         print(self.group)
         filter1 = {'vendor': 'Cisco'}
@@ -66,12 +161,12 @@ class NetbrainAPI:
         try:
             while count == 50:
                 payload = {
-                    #"version": 1,
+                    # "version": 1,
                     "path": self.group,
                     "skip": skip,
-                    #"fullattr": 0,
-                    #"filter": json.dumps(filter1)
- 
+                    # "fullattr": 0,
+                    # "filter": json.dumps(filter1)
+
                 }
                 response = requests.get(self.url_all_devices, params=payload, headers=self.headers, verify=False)
                 if response.status_code == 200:
@@ -82,10 +177,10 @@ class NetbrainAPI:
                     devices_result = result["devices"]
                     for dev in devices_result:
                         devices.append(dev)
-                    #print(result)
+                    # print(result)
                 else:
                     print(f"Get Devices API url: {response.url} -  failed with error: {response.status_code}")
- 
+
             for device in devices:
                 ip2hostname.append({"ip": device.get('mgmtIP'), "hostname": device.get("hostname")})
             print(f'all device count: {len(devices)}')
@@ -93,7 +188,8 @@ class NetbrainAPI:
             return ip2hostname
         except Exception as e:
             logging.error(f"unable to get all devices API for url: {response.url} with error: {e}")
- 
+
+
 class NetboxAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -105,7 +201,7 @@ class NetboxAPI:
         self.url_all_devices = f'https://{self.ip}/api/dcim/devices/?manufacturer=cisco&status=active&'
         self.connectivity = False
         self.max_limit = 50
- 
+
     def check_connectivity(self):
         print(self.url_all_devices)
         try:
@@ -121,7 +217,7 @@ class NetboxAPI:
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
- 
+
     def get_all_devices(self):
         payload = {
             "manufacturer": "cisco",
@@ -136,9 +232,9 @@ class NetboxAPI:
             response = requests.get(url, json=payload, headers=self.headers)
             if response.status_code == 200:
                 data = response.json()
- 
+
                 devices += data['results']
- 
+
                 url = data['next']  # get the next page URL, if any
             else:
                 print(f'Error getting devices: {response.status_code}')
@@ -148,16 +244,16 @@ class NetboxAPI:
             ip2hostname.append(
                 {"ip": device.get('primary_ip4').get('address').split('/')[0], "hostname": device.get("name")})
         return ip2hostname
- 
- 
+
+
 class SD_wan_authentication:
     @staticmethod
     def get_jsessionid(vmanage_host, vmanage_port, username, password):
         api = "/j_security_check"
-        base_url = fhttps://{vmanage_host}:{vmanage_port}
+        base_url = f"https://{vmanage_host}:{vmanage_port}"
         url = base_url + api
         payload = {'j_username': username, 'j_password': password}
- 
+
         response = requests.post(url=url, data=payload, verify=False)
         if response.ok:
             try:
@@ -171,11 +267,11 @@ class SD_wan_authentication:
         else:
             print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
             return None
- 
+
     @staticmethod
     def get_token(vmanage_host, vmanage_port, jsessionid):
         headers = {'Cookie': jsessionid}
-        base_url = fhttps://{vmanage_host}:{vmanage_port}
+        base_url = f"https://{vmanage_host}:{vmanage_port}"
         api = "/dataservice/client/token"
         url = base_url + api
         response = requests.get(url=url, headers=headers, verify=False)
@@ -183,8 +279,8 @@ class SD_wan_authentication:
             return (response.text)
         else:
             return None
- 
- 
+
+
 def collect_ips_sd_wan(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
@@ -198,8 +294,8 @@ def collect_ips_sd_wan(server_info):
             header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
         else:
             header = {'Content-Type': "application/json", 'Cookie': jsessionid}
-        result = requests.get(url=fhttps://{server_info.get('server_ip')}/dataservice/device, headers=header,
-                              verify=False)
+        result = requests.get(url=f"https://{server_info.get('server_ip')}/dataservice/device", headers = header,
+        verify = False)
         if result.ok:
             device_list = result.json().get("data")
             for device in device_list:
@@ -215,41 +311,37 @@ def collect_ips_sd_wan(server_info):
     else:
         print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
         return None
- 
- 
+
+
 def collect_ips_dnac(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
-    response = requests.post(fhttps://{server_info.get('server_ip')}/dna/system/api/v1/auth/token,
-                             auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
+    response = requests.post(f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token", auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        response2 = requests.get(fhttps://{server_info.get('server_ip')}/dna/intent/api/v1/network-device,
-                                 headers=headers, verify=False)
+        response2 = requests.get(f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device", headers=headers, verify=False)
         for device in response2.json().get('response'):
             if device.get('reachabilityStatus') != 'Reachable':
                 logging.error(f"device: {device.get('managementIpAddress')} is not reachable")
             elif device.get('managementIpAddress'):
-                ip2hostname.append({"ip": device.get('managementIpAddress'),
-                                    "hostname": device.get('hostname', device.get('managementIpAddress'))})
+                ip2hostname.append({"ip":device.get('managementIpAddress'), "hostname":device.get('hostname',device.get('managementIpAddress'))})
         return ip2hostname
     except Exception as e:
         logging.error(f'collection devices from  DNAC got failed with en error: {e}')
-        return None
- 
- 
+        return ip2hostname
+
 def collect_ips_epnm(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
-    url = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/InventoryDetails.json
+    url = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/InventoryDetails.json"
     r = requests.get(url, auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
     if r.ok:
         device_count = int(r.json().get('queryResponse').get('@count'))
         # print(f"Device count: {device_count}")
-        r2 = requests.get(url=fhttps://{server_info.get('server_ip')}/webacs/api/v4/op/rateService/rateLimits.json,
-                          auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
+        r2 = requests.get(url=f"https://{server_info.get('server_ip')}/webacs/api/v4/op/rateService/rateLimits.json",
+        auth = (server_info.get('server_u'), server_info.get('server_p')), verify = False)
         print(f"query limit: {r2.json().get('mgmtResponse').get('rateLimitsDTO')[0]['limitUnpagedQuery']}")
         query_limit = r2.json().get('mgmtResponse').get('rateLimitsDTO')[0]['limitUnpagedQuery']
         logging.info(
@@ -259,7 +351,7 @@ def collect_ips_epnm(server_info):
         list_of_ips = []
         while startpull < device_count:
             print(f"========= Polling device IPs from: {startpull} to: {startpull + query_limit} ==========")
-            devices_ip = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults={query_limit}&.firstResult={startpull}
+            devices_ip = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults={query_limit}&.firstResult={startpull}"
             r3 = requests.get(devices_ip, auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
             data = r3.json().get('queryResponse').get('entity')
             try:
@@ -287,11 +379,11 @@ def collect_ips_epnm(server_info):
     else:
         logging.error(f"not able to connect to server {server_info.get('server_ip')}, with en error {r.status_code}")
         return None
- 
- 
+
+
 def server_connectivity_check(server_info):
     if server_info.get("server_type") == "EPNM/PI":
-        url = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults=5&.firstResult=0
+        url = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults=5&.firstResult=0"
         check_connectivity = requests.get(url, auth=(server_info.get('server_u'), server_info.get('server_p')),
                                           verify=False)
         if check_connectivity.status_code == 200:
@@ -305,7 +397,7 @@ def server_connectivity_check(server_info):
                 f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')} , error: {check_connectivity.status_code}, please check credentials or user role or firewall")
             return False
     elif server_info.get("server_type") == "DNAC":
-        url = fhttps://{server_info.get('server_ip')}/dna/system/api/v1/auth/token
+        url = f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token"
         check_connectivity = requests.post(url, auth=(server_info.get('server_u'), server_info.get('server_p')),
                                            verify=False)
         if check_connectivity.status_code == 200:
@@ -346,30 +438,38 @@ def server_connectivity_check(server_info):
             return True
         else:
             return False
- 
+    elif server_info.get("server_type") == "CDO":
+        cdo_server = CdoAPI(server_info)
+        cdo_server.check_connectivity()
+        if cdo_server.connectivity:
+            return True
+        else:
+            return False
+
+
 def config():
-    """this function will open config file (config.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
-    if os.path.isfile('./config.json'):
+    """this function will open config file (config2.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
+    if os.path.isfile('config2.json'):
         print('Configuration file exists!')
         logging.info('Configuration file exists!')
-        with open("./config.json", "r") as file:
+        with open("config.json", "r") as file:
             config_data = json.loads(file.read())
         return config_data
- 
+
     else:
         print("!!!Config.json file not found!!! .... will create config file")
         config_data = []
         while True:
             command = input(
                 "Commands: \na - add server\nc - create configuration file and run the script\ne - exit\nPlease enter command: ").strip().lower()
- 
+
             if command == "a":
-                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5":"NETBRAIN"}
- 
+                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5": "NETBRAIN", "6":"CDO"}
+
                 config = {}
                 server_type = input(
-                    "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \nPlease provide server type: ").strip()
-                if not server_type or server_type not in ("1", "2", "3", "4", "5"):
+                    "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \n 6 - add CDO server \n Please provide server type: ").strip()
+                if not server_type or server_type not in ("1", "2", "3", "4", "5", "6"):
                     break
                 config["server_type"] = servers.get(server_type)
                 print(f"server type is {servers.get(server_type)}")
@@ -380,8 +480,8 @@ def config():
                 # server_port = input("please provide server port (if you don't know, leave the field blank): ").strip()
                 # if server_port:
                 #    config['port'] = server_port
- 
-                if server_type == "4":
+
+                if server_type in ("4","6"):
                     server_token = input("please provide server token: ").strip()
                     if not server_token:
                         break
@@ -396,10 +496,13 @@ def config():
                         break
                     config['server_p'] = server_p
                 if server_type == "5":
-                    server_authentication_id = input("Please provide authentication_id (if you dont have this parameter,just leave it empty): ").strip()
+                    server_authentication_id = input(
+                        "Please provide authentication_id (if you dont have this parameter,just leave it empty): ").strip()
                     config['authentication_id'] = server_authentication_id
-                    server_group = input("Please specify group which you would like to call (if you dont have this parameter,just leave it empty): ").strip()
+                    server_group = input(
+                        "Please specify group which you would like to call (if you dont have this parameter,just leave it empty): ").strip()
                     config['group'] = server_group
+
                 # print(config)
                 connectivity = server_connectivity_check(config)
                 if connectivity:
@@ -408,17 +511,17 @@ def config():
                 print("exiting the program")
                 return None
             elif command == "c":
-                with open("config.json", "w") as file:
+                with open("config2.json", "w") as file:
                     file.write(json.dumps(config_data))
-                    print("configuration file config.json has been created")
+                    print("configuration file config2.json has been created")
                     break
- 
+
             else:
                 print("unrecognised command")
- 
+
         return config_data
- 
- 
+
+
 def main():
     print("######################################################################")
     print("###            script author  - abalevyc@cisco.com                 ###")
@@ -462,6 +565,18 @@ def main():
                 elif server.get('server_type') == 'NETBOX':
                     netbox_server = NetboxAPI(server)
                     dict_ip_2_hostname = netbox_server.get_all_devices()
+                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
+                    logging.info(
+                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
+                    for i in dict_ip_2_hostname:
+                        file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                        final_device_count += 1
+                elif server.get('server_type') == 'CDO':
+                    cdo_server = CdoAPI(server)
+                    dict_ip_2_hostname = cdo_server.get_all_devices()
+                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
+                    logging.info(
+                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
                         file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
                         final_device_count += 1
@@ -469,6 +584,9 @@ def main():
                     netbrain_server = NetbrainAPI(server)
                     netbrain_server.get_token()
                     dict_ip_2_hostname = netbrain_server.get_all_devices()
+                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
+                    logging.info(
+                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
                         file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
                         final_device_count += 1
@@ -478,8 +596,8 @@ def main():
         print(f"FINAL device count in CSV: {final_device_count}")
         logging.info(f"FINAL device count in CSV: {final_device_count}")
         return True
- 
- 
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
@@ -494,8 +612,10 @@ if __name__ == "__main__":
     result = main()
     if result is True:
         try:
-            p = subprocess.run(["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
-            p2 = subprocess.run(["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            p = subprocess.run(
+                ["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            p2 = subprocess.run(
+                ["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
             print("nms_seed.csv have been copied to /opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/")
             print("permitions 777 has been granted to nms_seed.csv")
             print(f"time taken {time.time() - start_time}")
