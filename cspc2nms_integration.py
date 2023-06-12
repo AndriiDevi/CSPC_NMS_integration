@@ -494,8 +494,8 @@ if __name__ == "__main__":
     result = main()
     if result is True:
         try:
-            #p = subprocess.run(["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
-            #p2 = subprocess.run(["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            p = subprocess.run(["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            p2 = subprocess.run(["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
             print("nms_seed.csv have been copied to /opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/")
             print("permitions 777 has been granted to nms_seed.csv")
             print(f"time taken {time.time() - start_time}")
