@@ -6,8 +6,7 @@ import json
 import os
 import subprocess
 import urllib3
-
-
+ 
 class NetbrainAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -20,11 +19,14 @@ class NetbrainAPI:
         self.url_initial_session = f'https://{self.ip}/ServicesAPI/API/V1/Session'
         self.connectivity = False
         self.max_limit = 50
-
+        self.username = server_config.get('server_u')
+        self.password = server_config.get('server_p')
+        self.body = {"username":self.username,"password":self.password,"authentication_id":self.authentication_id}
     def check_connectivity(self):
         print(self.url_all_devices)
+        print(self.username)
         try:
-            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10, verify=False)
+            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers, timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -34,11 +36,12 @@ class NetbrainAPI:
             else:
                 print(
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
+                print(response.text)
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
     def get_token(self):
         try:
-            response = requests.get(self.url_initial_session, headers=self.headers, timeout=10 ,verify=False)
+            response = requests.post(self.url_initial_session, data=json.dumps(self.body), headers=self.headers, timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -54,6 +57,7 @@ class NetbrainAPI:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
             logging.error(f"unable to create token for {self.server_type} server {self.ip} , error: {response.status_code} for url: {response.url}")
     def get_all_devices(self):
+        print(self.group)
         filter1 = {'vendor': 'Cisco'}
         devices = []
         ip2hostname = []
@@ -62,16 +66,17 @@ class NetbrainAPI:
         try:
             while count == 50:
                 payload = {
-                    "version": 1,
+                    #"version": 1,
                     "path": self.group,
                     "skip": skip,
-                    "fullattr": 0,
-                    "filter": json.dumps(filter1)
-
+                    #"fullattr": 0,
+                    #"filter": json.dumps(filter1)
+ 
                 }
                 response = requests.get(self.url_all_devices, params=payload, headers=self.headers, verify=False)
                 if response.status_code == 200:
                     result = response.json()
+                    print(result)
                     count = len(result["devices"])
                     skip = skip + count
                     devices_result = result["devices"]
@@ -80,15 +85,15 @@ class NetbrainAPI:
                     #print(result)
                 else:
                     print(f"Get Devices API url: {response.url} -  failed with error: {response.status_code}")
-
+ 
             for device in devices:
-                ip2hostname.append({"ip": device.get('mgmtIP'), "hostname": device.get("name")})
+                ip2hostname.append({"ip": device.get('mgmtIP'), "hostname": device.get("hostname")})
             print(f'all device count: {len(devices)}')
             logging.info(f'device count for {self.server_type} server {self.ip}: {len(devices)}')
             return ip2hostname
         except Exception as e:
             logging.error(f"unable to get all devices API for url: {response.url} with error: {e}")
-
+ 
 class NetboxAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -100,7 +105,7 @@ class NetboxAPI:
         self.url_all_devices = f'https://{self.ip}/api/dcim/devices/?manufacturer=cisco&status=active&'
         self.connectivity = False
         self.max_limit = 50
-
+ 
     def check_connectivity(self):
         print(self.url_all_devices)
         try:
@@ -116,7 +121,7 @@ class NetboxAPI:
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
-
+ 
     def get_all_devices(self):
         payload = {
             "manufacturer": "cisco",
@@ -131,9 +136,9 @@ class NetboxAPI:
             response = requests.get(url, json=payload, headers=self.headers)
             if response.status_code == 200:
                 data = response.json()
-
+ 
                 devices += data['results']
-
+ 
                 url = data['next']  # get the next page URL, if any
             else:
                 print(f'Error getting devices: {response.status_code}')
@@ -143,16 +148,16 @@ class NetboxAPI:
             ip2hostname.append(
                 {"ip": device.get('primary_ip4').get('address').split('/')[0], "hostname": device.get("name")})
         return ip2hostname
-
-
+ 
+ 
 class SD_wan_authentication:
     @staticmethod
     def get_jsessionid(vmanage_host, vmanage_port, username, password):
         api = "/j_security_check"
-        base_url = f"https://{vmanage_host}:{vmanage_port}"
+        base_url = fhttps://{vmanage_host}:{vmanage_port}
         url = base_url + api
         payload = {'j_username': username, 'j_password': password}
-
+ 
         response = requests.post(url=url, data=payload, verify=False)
         if response.ok:
             try:
@@ -166,11 +171,11 @@ class SD_wan_authentication:
         else:
             print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
             return None
-
+ 
     @staticmethod
     def get_token(vmanage_host, vmanage_port, jsessionid):
         headers = {'Cookie': jsessionid}
-        base_url = f"https://{vmanage_host}:{vmanage_port}"
+        base_url = fhttps://{vmanage_host}:{vmanage_port}
         api = "/dataservice/client/token"
         url = base_url + api
         response = requests.get(url=url, headers=headers, verify=False)
@@ -178,8 +183,8 @@ class SD_wan_authentication:
             return (response.text)
         else:
             return None
-
-
+ 
+ 
 def collect_ips_sd_wan(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
@@ -193,7 +198,7 @@ def collect_ips_sd_wan(server_info):
             header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
         else:
             header = {'Content-Type': "application/json", 'Cookie': jsessionid}
-        result = requests.get(url=f"https://{server_info.get('server_ip')}/dataservice/device", headers=header,
+        result = requests.get(url=fhttps://{server_info.get('server_ip')}/dataservice/device, headers=header,
                               verify=False)
         if result.ok:
             device_list = result.json().get("data")
@@ -210,18 +215,18 @@ def collect_ips_sd_wan(server_info):
     else:
         print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
         return None
-
-
+ 
+ 
 def collect_ips_dnac(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
-    response = requests.post(f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token",
+    response = requests.post(fhttps://{server_info.get('server_ip')}/dna/system/api/v1/auth/token,
                              auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        response2 = requests.get(f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device",
+        response2 = requests.get(fhttps://{server_info.get('server_ip')}/dna/intent/api/v1/network-device,
                                  headers=headers, verify=False)
         for device in response2.json().get('response'):
             if device.get('reachabilityStatus') != 'Reachable':
@@ -233,17 +238,17 @@ def collect_ips_dnac(server_info):
     except Exception as e:
         logging.error(f'collection devices from  DNAC got failed with en error: {e}')
         return None
-
-
+ 
+ 
 def collect_ips_epnm(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
-    url = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/InventoryDetails.json"
+    url = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/InventoryDetails.json
     r = requests.get(url, auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
     if r.ok:
         device_count = int(r.json().get('queryResponse').get('@count'))
         # print(f"Device count: {device_count}")
-        r2 = requests.get(url=f"https://{server_info.get('server_ip')}/webacs/api/v4/op/rateService/rateLimits.json",
+        r2 = requests.get(url=fhttps://{server_info.get('server_ip')}/webacs/api/v4/op/rateService/rateLimits.json,
                           auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
         print(f"query limit: {r2.json().get('mgmtResponse').get('rateLimitsDTO')[0]['limitUnpagedQuery']}")
         query_limit = r2.json().get('mgmtResponse').get('rateLimitsDTO')[0]['limitUnpagedQuery']
@@ -254,7 +259,7 @@ def collect_ips_epnm(server_info):
         list_of_ips = []
         while startpull < device_count:
             print(f"========= Polling device IPs from: {startpull} to: {startpull + query_limit} ==========")
-            devices_ip = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults={query_limit}&.firstResult={startpull}"
+            devices_ip = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults={query_limit}&.firstResult={startpull}
             r3 = requests.get(devices_ip, auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
             data = r3.json().get('queryResponse').get('entity')
             try:
@@ -278,16 +283,15 @@ def collect_ips_epnm(server_info):
             except Exception as e:
                 logging.error(f"!!!!!!!! collect_ips function failed for row {i} with en error {e}")
             startpull += query_limit
-        # print(ip2hostname)
         return (ip2hostname)
     else:
         logging.error(f"not able to connect to server {server_info.get('server_ip')}, with en error {r.status_code}")
         return None
-
-
+ 
+ 
 def server_connectivity_check(server_info):
     if server_info.get("server_type") == "EPNM/PI":
-        url = f"https://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults=5&.firstResult=0"
+        url = fhttps://{server_info.get('server_ip')}/webacs/api/v4/data/Devices.json?.full=true&.maxResults=5&.firstResult=0
         check_connectivity = requests.get(url, auth=(server_info.get('server_u'), server_info.get('server_p')),
                                           verify=False)
         if check_connectivity.status_code == 200:
@@ -301,7 +305,7 @@ def server_connectivity_check(server_info):
                 f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')} , error: {check_connectivity.status_code}, please check credentials or user role or firewall")
             return False
     elif server_info.get("server_type") == "DNAC":
-        url = f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token"
+        url = fhttps://{server_info.get('server_ip')}/dna/system/api/v1/auth/token
         check_connectivity = requests.post(url, auth=(server_info.get('server_u'), server_info.get('server_p')),
                                            verify=False)
         if check_connectivity.status_code == 200:
@@ -342,7 +346,7 @@ def server_connectivity_check(server_info):
             return True
         else:
             return False
-
+ 
 def config():
     """this function will open config file (config.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
     if os.path.isfile('./config.json'):
@@ -351,17 +355,17 @@ def config():
         with open("./config.json", "r") as file:
             config_data = json.loads(file.read())
         return config_data
-
+ 
     else:
         print("!!!Config.json file not found!!! .... will create config file")
         config_data = []
         while True:
             command = input(
                 "Commands: \na - add server\nc - create configuration file and run the script\ne - exit\nPlease enter command: ").strip().lower()
-
+ 
             if command == "a":
-                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5": "NETBRAIN"}
-
+                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5":"NETBRAIN"}
+ 
                 config = {}
                 server_type = input(
                     "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \nPlease provide server type: ").strip()
@@ -376,7 +380,7 @@ def config():
                 # server_port = input("please provide server port (if you don't know, leave the field blank): ").strip()
                 # if server_port:
                 #    config['port'] = server_port
-
+ 
                 if server_type == "4":
                     server_token = input("please provide server token: ").strip()
                     if not server_token:
@@ -408,13 +412,13 @@ def config():
                     file.write(json.dumps(config_data))
                     print("configuration file config.json has been created")
                     break
-
+ 
             else:
                 print("unrecognised command")
-
+ 
         return config_data
-
-
+ 
+ 
 def main():
     print("######################################################################")
     print("###            script author  - abalevyc@cisco.com                 ###")
@@ -474,8 +478,8 @@ def main():
         print(f"FINAL device count in CSV: {final_device_count}")
         logging.info(f"FINAL device count in CSV: {final_device_count}")
         return True
-
-
+ 
+ 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
@@ -490,10 +494,8 @@ if __name__ == "__main__":
     result = main()
     if result is True:
         try:
-            p = subprocess.run(
-                ["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
-            p2 = subprocess.run(
-                ["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            #p = subprocess.run(["cp", "finalseed.csv", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
+            #p2 = subprocess.run(["chmod", "777", "/opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/nms_seed.csv"])
             print("nms_seed.csv have been copied to /opt/cisco/ss/adminshell/applications/CSPC/data/SeedFileMgmt/")
             print("permitions 777 has been granted to nms_seed.csv")
             print(f"time taken {time.time() - start_time}")
