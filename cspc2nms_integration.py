@@ -449,7 +449,7 @@ def server_connectivity_check(server_info):
 
 def config():
     """this function will open config file (config2.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
-    if os.path.isfile('config2.json'):
+    if os.path.isfile('config.json'):
         print('Configuration file exists!')
         logging.info('Configuration file exists!')
         with open("config.json", "r") as file:
