@@ -328,9 +328,10 @@ def collect_ips_dnac(server_info):
         # Start with the initial page
         url = base_url
         while url:
+            print(f'url =>>> {url}')
             response = requests.get(url, headers=headers, verify=False)
             response_json = response.json()
-            print(f"url =>>> {url}")
+            print('test')
             devices = response_json.get('response', [])
             # Process devices from the current page
             for device in devices:
