@@ -324,7 +324,6 @@ def collect_ips_dnac(server_info):
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
         pagination = 0
-        print(f"pagination {pagination}")
         
         while True:
             url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
