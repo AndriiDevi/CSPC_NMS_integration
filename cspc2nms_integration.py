@@ -312,8 +312,49 @@ def collect_ips_sd_wan(server_info):
         print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
         return None
 
-
 def collect_ips_dnac(server_info):
+    """This function retrieves all devices and returns a dictionary with {"ip":"value","hostname":"value"}"""
+    print(f"Retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
+    ip2hostname = []
+
+    # Authenticate and obtain the token
+    response = requests.post(f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token",
+                             auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
+    try:
+        token = response.json()['Token']
+        headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
+        pagination = 0
+        print(f"pagination {pagination}")
+        
+        while True:
+            url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
+            devices_request = requests.get(url, headers=headers, verify=False)
+            print(url)
+            print(len(devices_request.json().get('response')))
+            
+            if len(devices_request.json().get('response')) == 0:
+                break
+            
+            pagination += 500
+            print(f"pagination {pagination}")
+            
+            response_json = devices_request.json()
+            devices = response_json.get('response', [])
+            
+            # Process devices from the current page
+            for device in devices:
+                if device.get('reachabilityStatus') != 'Reachable':
+                    logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
+                elif device.get('managementIpAddress'):
+                    ip2hostname.append({"ip": device.get('managementIpAddress'),
+                                        "hostname": device.get('hostname', device.get('managementIpAddress'))})
+
+        return ip2hostname
+    except Exception as e:
+        logging.error(f'Failed to collect devices from DNAC with an error: {e}')
+        return ip2hostname
+
+def collect_ips_dnac1(server_info):
     """This function retrieves all devices and returns a dictionary with {"ip":"value","hostname":"value"}"""
     print(f"Retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
