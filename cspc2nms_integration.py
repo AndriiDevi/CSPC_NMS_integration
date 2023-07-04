@@ -323,19 +323,30 @@ def collect_ips_dnac(server_info):
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        pagination = 0
         
+        pagination = 0
+        url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
+        devices_request = requests.get(url, headers=headers, verify=False)
+        initial_devices = devices_request.get('response', [])
+            for device in initial_devices:
+                if device.get('reachabilityStatus') != 'Reachable':
+                    logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
+                elif device.get('managementIpAddress'):
+                    ip2hostname.append({"ip": device.get('managementIpAddress'),
+                                        "hostname": device.get('hostname', device.get('managementIpAddress'))})
         while True:
-            url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
+            pagination += 500
+            print(f"pagination {pagination}")
+            url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
+            url = url + f"/{pagination}/500"
+            
             devices_request = requests.get(url, headers=headers, verify=False)
             print(url)
             print(len(devices_request.json().get('response')))
             
             if len(devices_request.json().get('response')) == 0:
+                print("device count is 0")
                 break
-            
-            pagination += 500
-            print(f"pagination {pagination}")
             
             response_json = devices_request.json()
             devices = response_json.get('response', [])
