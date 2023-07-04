@@ -317,56 +317,39 @@ def collect_ips_dnac(server_info):
     """This function retrieves all devices and returns a dictionary with {"ip":"value","hostname":"value"}"""
     print(f"Retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
-    
+
     # Authenticate and obtain the token
     response = requests.post(f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token",
                              auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        print(headers)
+
         base_url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
         # Start with the initial page
         url = base_url
         while url:
-            print(f'url =>>> {url}')
+            print(url)
             response = requests.get(url, headers=headers, verify=False)
-            print(response.status_code)
             response_json = response.json()
-            print('============')
-            for key in response_json.keys():
-                print(key)
-            headers1 = response.headers
-                for header, value in headers1.items():
-                    print(f"{header}: {value}")
             devices = response_json.get('response', [])
             # Process devices from the current page
             for device in devices:
                 if device.get('reachabilityStatus') != 'Reachable':
                     logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
                 elif device.get('managementIpAddress'):
-                    ip_hostname_list.append({"ip": device.get('managementIpAddress'),
-                                     "hostname": device.get('hostname', device.get('managementIpAddress'))})
+                    ip2hostname.append({"ip": device.get('managementIpAddress'),
+                                        "hostname": device.get('hostname', device.get('managementIpAddress'))})
 
             # Check if there are more pages
-            paging_info = response_json.get('response', {}).get('paging', {})
+            paging_info = response_json.get('paging', {})
+            print(f'pagin info: {paging_info}')
             url = paging_info.get('next')
-            
+
         return ip2hostname
     except Exception as e:
         logging.error(f'Failed to collect devices from DNAC with an error: {e}')
         return ip2hostname
-
-def extract_ip_hostname(response_data):
-    """Helper function to extract IP and hostname from the response data"""
-    ip_hostname_list = []
-    for device in response_data:
-        if device.get('reachabilityStatus') != 'Reachable':
-            logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
-        elif device.get('managementIpAddress'):
-            ip_hostname_list.append({"ip": device.get('managementIpAddress'),
-                                     "hostname": device.get('hostname', device.get('managementIpAddress'))})
-    return ip_hostname_list
 
 
 def collect_ips_epnm(server_info):
