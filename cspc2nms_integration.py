@@ -325,16 +325,18 @@ def collect_ips_dnac(server_info):
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
         pagination = 0
+        print(f"pagination {pagination}")
         url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
         # Start with the initial page
-        response = requests.get(url, headers=headers, verify=False)
+        devices_request = requests.get(url, headers=headers, verify=False)
         print(url)
-        print(en(response.json().get('response')))
-        while len(response.json().get('response')) > 0:
+        print(len(devices_request.json().get('response')))
+        while len(devices_request.json().get('response')) > 0:
             pagination += 500
+            print(f"pagination {pagination}")
             print(url)
-            response = requests.get(url, headers=headers, verify=False)
-            response_json = response.json()
+            devices_request = requests.get(url, headers=headers, verify=False)
+            response_json = devices_request.json()
             devices = response_json.get('response', [])
             # Process devices from the current page
             for device in devices:
@@ -343,10 +345,6 @@ def collect_ips_dnac(server_info):
                 elif device.get('managementIpAddress'):
                     ip2hostname.append({"ip": device.get('managementIpAddress'),
                                         "hostname": device.get('hostname', device.get('managementIpAddress'))})
-            # Check if there are more pages
-            paging_info = response_json.get('paging', {})
-            print(f'pagin info: {paging_info}')
-            url = paging_info.get('next')
 
         return ip2hostname
     except Exception as e:
