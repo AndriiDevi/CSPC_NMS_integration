@@ -324,7 +324,9 @@ def collect_ips_dnac(server_info):
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-
+        countdev = requests.get(f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/count", headers=headers, verify=False)
+        print(countdev.json())
+        
         base_url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
         # Start with the initial page
         url = base_url
