@@ -328,7 +328,7 @@ def collect_ips_dnac(server_info):
         url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
         devices_request = requests.get(url, headers=headers, verify=False)
         initial_devices = devices_request.get('response', [])
-            for device in initial_devices:
+        for device in initial_devices:
                 if device.get('reachabilityStatus') != 'Reachable':
                     logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
                 elif device.get('managementIpAddress'):
