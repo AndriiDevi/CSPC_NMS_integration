@@ -334,8 +334,11 @@ def collect_ips_dnac(server_info):
             print(response.status_code)
             response_json = response.json()
             print('============')
-            print(response_json)
-            print(response_json.next)
+            for key in response_json.keys():
+                print(key)
+            headers1 = response.headers
+                for header, value in headers1.items():
+                    print(f"{header}: {value}")
             devices = response_json.get('response', [])
             # Process devices from the current page
             for device in devices:
