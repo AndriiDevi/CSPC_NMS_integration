@@ -532,6 +532,8 @@ def main():
         return False
     else:
         final_device_count = 0
+        written_ips = set()  # Set to store written IP addresses
+        written_hostnames = set()  # Set to store written hostnames
         with open("finalseed.csv", 'w', newline='') as file:
             for server in configuration:
                 logging.info(
@@ -539,64 +541,87 @@ def main():
                 if server.get('server_type') == 'EPNM/PI':
                     dict_ip_2_hostname = collect_ips_epnm(server)
                     if dict_ip_2_hostname:
-                        list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                        logging.info(
-                            f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                         for i in dict_ip_2_hostname:
-                            file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                            final_device_count += 1
+                            ip = i.get('ip')
+                            hostname = i.get('hostname')
+                            if ip not in written_ips and hostname not in written_hostnames:
+                                file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                                final_device_count += 1
+                                written_ips.add(ip)
+                                written_hostnames.add(hostname)
+                            else:
+                                logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'SD-WAN':
                     dict_ip_2_hostname = collect_ips_sd_wan(server)
                     if dict_ip_2_hostname:
-                        list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                        logging.info(
-                            f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                         for i in dict_ip_2_hostname:
-                            file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                            final_device_count += 1
+                            ip = i.get('ip')
+                            hostname = i.get('hostname')
+                            if ip not in written_ips and hostname not in written_hostnames:
+                                file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                                final_device_count += 1
+                                written_ips.add(ip)
+                                written_hostnames.add(hostname)
+                            else:
+                                logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'DNAC':
                     dict_ip_2_hostname = collect_ips_dnac(server)
-                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                    logging.info(
-                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
-                        file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                        final_device_count += 1
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'NETBOX':
                     netbox_server = NetboxAPI(server)
                     dict_ip_2_hostname = netbox_server.get_all_devices()
-                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                    logging.info(
-                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
-                        file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                        final_device_count += 1
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'CDO':
                     cdo_server = CdoAPI(server)
                     dict_ip_2_hostname = cdo_server.get_all_devices()
-                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                    logging.info(
-                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
-                        file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                        final_device_count += 1
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'NETBRAIN':
                     netbrain_server = NetbrainAPI(server)
                     netbrain_server.get_token()
                     dict_ip_2_hostname = netbrain_server.get_all_devices()
-                    list_of_ips = [i.get('ip') for i in dict_ip_2_hostname]
-                    logging.info(
-                        f"total amount of devices for {server.get('server_type')} server: {server.get('server_ip')}: {len(set(list_of_ips))}")
                     for i in dict_ip_2_hostname:
-                        file.write(f"{i.get('ip')},{i.get('hostname')},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                        final_device_count += 1
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 logging.info(
                     f"======== Finished polling {server.get('server_type')} server: {server.get('server_ip')} ========")
         print("file finalseed.csv has been created")
         print(f"FINAL device count in CSV: {final_device_count}")
         logging.info(f"FINAL device count in CSV: {final_device_count}")
         return True
-
 
 if __name__ == "__main__":
     logging.basicConfig(
