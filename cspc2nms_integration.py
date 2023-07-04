@@ -324,14 +324,12 @@ def collect_ips_dnac(server_info):
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        countdev = requests.get(f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/count", headers=headers, verify=False)
-        print(countdev.json())
-        
-        base_url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device?offset=500&limit=500"
+        pagination = 0
+        url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
         # Start with the initial page
-        url = base_url
-        while url:
-            print(url)
+        response = requests.get(url, headers=headers, verify=False)
+        while len(response.json()['response']) == 500:
+            pagination += 500
             response = requests.get(url, headers=headers, verify=False)
             response_json = response.json()
             devices = response_json.get('response', [])
@@ -342,7 +340,6 @@ def collect_ips_dnac(server_info):
                 elif device.get('managementIpAddress'):
                     ip2hostname.append({"ip": device.get('managementIpAddress'),
                                         "hostname": device.get('hostname', device.get('managementIpAddress'))})
-
             # Check if there are more pages
             paging_info = response_json.get('paging', {})
             print(f'pagin info: {paging_info}')
