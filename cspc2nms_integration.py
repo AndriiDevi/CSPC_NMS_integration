@@ -328,8 +328,11 @@ def collect_ips_dnac(server_info):
         url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
         # Start with the initial page
         response = requests.get(url, headers=headers, verify=False)
-        while len(response.json()['response']) > 0:
+        print(url)
+        print(en(response.json().get('response')))
+        while len(response.json().get('response')) > 0:
             pagination += 500
+            print(url)
             response = requests.get(url, headers=headers, verify=False)
             response_json = response.json()
             devices = response_json.get('response', [])
