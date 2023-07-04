@@ -324,14 +324,18 @@ def collect_ips_dnac(server_info):
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
+        print(headers)
         base_url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
         # Start with the initial page
         url = base_url
         while url:
             print(f'url =>>> {url}')
             response = requests.get(url, headers=headers, verify=False)
+            print(response.status_code)
             response_json = response.json()
-            print('test')
+            print('============')
+            print(response_json)
+            print(response_json.next)
             devices = response_json.get('response', [])
             # Process devices from the current page
             for device in devices:
