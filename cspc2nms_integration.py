@@ -3,6 +3,7 @@ import getpass
 import time
 import logging
 import json
+import csv
 import os
 import subprocess
 import urllib3
@@ -613,8 +614,9 @@ def main():
     else:
         ip_hostname_manual_list= []
         with open('cspc_manual_list.csv', "r") as file:
-            for line in file:
-                ip, hostname = line.strip().split(",")
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                ip, hostname = row
                 ip_hostname_list.append({"ip": ip, "hostname": hostname})
         final_device_count = 0
         written_ips = set()  # Set to store written IP addresses
