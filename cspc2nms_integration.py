@@ -312,7 +312,7 @@ def collect_ips_sd_wan(server_info):
         print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
         return None
 
-def collect_ips_dnac(server_info):
+def collect_ips_dnac1(server_info):
     """This function retrieves all devices and returns a dictionary with {"ip":"value","hostname":"value"}"""
     print(f"Retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
@@ -361,10 +361,11 @@ def collect_ips_dnac(server_info):
 
         return ip2hostname
     except Exception as e:
+        print(f'Failed to collect devices from DNAC with an error: {e}')
         logging.error(f'Failed to collect devices from DNAC with an error: {e}')
         return ip2hostname
 
-def collect_ips_dnac1(server_info):
+def collect_ips_dnac(server_info):
     """This function retrieves all devices and returns a dictionary with {"ip":"value","hostname":"value"}"""
     print(f"Retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
@@ -375,22 +376,30 @@ def collect_ips_dnac1(server_info):
     try:
         token = response.json()['Token']
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        pagination = 0
-        print(f"pagination {pagination}")
-        url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device/{pagination}/500"
+        url = "https://your-dnac-server/dna/intent/api/v1/network-device"
         # Start with the initial page
         devices_request = requests.get(url, headers=headers, verify=False)
-        print(url)
-        print(len(devices_request.json().get('response')))
-        while len(devices_request.json().get('response')) > 0:
-            pagination += 500
-            print(f"pagination {pagination}")
-            print(url)
-            devices_request = requests.get(url, headers=headers, verify=False)
-            response_json = devices_request.json()
+        all_devices = []
+        # Start with the initial page
+        start_index = 1
+        records_to_return = 500
+        while True:
+            # Construct the URL with the current pagination parameters
+            current_url = f"{url}/{start_index}/{records_to_return}"
+            # Send the request
+            print(current_url)
+            response = requests.get(current_url, headers=headers, verify=False)
+            response_json = response.json()
             devices = response_json.get('response', [])
-            # Process devices from the current page
-            for device in devices:
+            # If no devices are returned, break out of the loop
+            if len(devices) == 0:
+                break
+            # Add the devices from the current page to the list
+            all_devices.extend(devices)
+            # Increment the start index for the next page
+            start_index += records_to_return
+            print(f"incrementing index: {start_index}")
+        for device in all_devices:
                 if device.get('reachabilityStatus') != 'Reachable':
                     logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
                 elif device.get('managementIpAddress'):
@@ -399,6 +408,7 @@ def collect_ips_dnac1(server_info):
 
         return ip2hostname
     except Exception as e:
+        print(error occured: {e})
         logging.error(f'Failed to collect devices from DNAC with an error: {e}')
         return ip2hostname
 
