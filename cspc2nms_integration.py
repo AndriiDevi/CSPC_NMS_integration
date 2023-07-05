@@ -373,14 +373,14 @@ def collect_ips_dnac(server_info):
     # Authenticate and obtain the token
     response = requests.post(f"https://{server_info.get('server_ip')}/dna/system/api/v1/auth/token",
                              auth=(server_info.get('server_u'), server_info.get('server_p')), verify=False)
+    print(response.url)
     try:
+        all_devices = []
         token = response.json()['Token']
+        print(f"token: {token}")
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
         url = "https://your-dnac-server/dna/intent/api/v1/network-device"
-        # Start with the initial page
-        devices_request = requests.get(url, headers=headers, verify=False)
-        all_devices = []
-        # Start with the initial page
+       
         start_index = 1
         records_to_return = 500
         while True:
@@ -388,8 +388,8 @@ def collect_ips_dnac(server_info):
             current_url = f"{url}/{start_index}/{records_to_return}"
             # Send the request
             print(current_url)
-            response = requests.get(current_url, headers=headers, verify=False)
-            response_json = response.json()
+            dev_response = requests.get(current_url, headers=headers, verify=False)
+            response_json = dev_response.json()
             devices = response_json.get('response', [])
             # If no devices are returned, break out of the loop
             if len(devices) == 0:
@@ -405,7 +405,6 @@ def collect_ips_dnac(server_info):
                 elif device.get('managementIpAddress'):
                     ip2hostname.append({"ip": device.get('managementIpAddress'),
                                         "hostname": device.get('hostname', device.get('managementIpAddress'))})
-
         return ip2hostname
     except Exception as e:
         print('error occured: {e}')
