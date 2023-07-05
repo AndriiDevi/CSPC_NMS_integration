@@ -408,7 +408,7 @@ def collect_ips_dnac(server_info):
 
         return ip2hostname
     except Exception as e:
-        print(error occured: {e})
+        print('error occured: {e}')
         logging.error(f'Failed to collect devices from DNAC with an error: {e}')
         return ip2hostname
 
