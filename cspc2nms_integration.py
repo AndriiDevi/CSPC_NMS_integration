@@ -401,7 +401,9 @@ def collect_ips_dnac(server_info):
             # Increment the start index for the next page
             start_index += records_to_return
             print(f"incrementing index: {start_index}")
-        for device in all_devices:
+        all_devices_filtered = [device for device in all_devices if "access point" not in device.get('type', '').lower()]
+        print(f"filtered device count {len(all_devices_filtered)}")
+        for device in all_devices_filtered:
                 if device.get('reachabilityStatus') != 'Reachable':
                     logging.error(f"Device: {device.get('managementIpAddress')} is not reachable")
                 elif device.get('managementIpAddress'):
