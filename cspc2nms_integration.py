@@ -611,10 +611,19 @@ def main():
     if not configuration:
         return False
     else:
+        ip_hostname_manual_list= []
+        with open('cspc_manual_list.csv', "r") as file:
+            for line in file:
+                ip, hostname = line.strip().split(",")
+                ip_hostname_list.append({"ip": ip, "hostname": hostname})
         final_device_count = 0
         written_ips = set()  # Set to store written IP addresses
         written_hostnames = set()  # Set to store written hostnames
         with open("finalseed.csv", 'w', newline='') as file:
+            for device in ip_hostname_manual_list:
+                ip = i.get('ip')
+                hostname = i.get('hostname')
+                file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
             for server in configuration:
                 logging.info(
                     f"======== Start polling {server.get('server_type')} server: {server.get('server_ip')} ========")
