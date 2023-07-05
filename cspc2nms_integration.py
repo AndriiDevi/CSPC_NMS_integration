@@ -392,6 +392,7 @@ def collect_ips_dnac(server_info):
             dev_response = requests.get(current_url, headers=headers, verify=False)
             response_json = dev_response.json()
             devices = response_json.get('response', [])
+            print(devices)
             # If no devices are returned, break out of the loop
             if len(devices) == 0:
                 break
