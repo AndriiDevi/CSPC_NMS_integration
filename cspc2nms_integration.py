@@ -623,8 +623,8 @@ def main():
         written_hostnames = set()  # Set to store written hostnames
         with open("finalseed.csv", 'w', newline='') as file:
             for device in ip_hostname_manual_list:
-                ip = i.get('ip')
-                hostname = i.get('hostname')
+                ip = device.get('ip')
+                hostname = device.get('hostname')
                 file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
             for server in configuration:
                 logging.info(
