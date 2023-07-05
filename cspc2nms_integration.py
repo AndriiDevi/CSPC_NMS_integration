@@ -379,7 +379,7 @@ def collect_ips_dnac(server_info):
         token = response.json()['Token']
         print(f"token: {token}")
         headers = {'X-Auth-Token': token, 'Content-Type': 'application/json'}
-        url = "https://your-dnac-server/dna/intent/api/v1/network-device"
+        url = f"https://{server_info.get('server_ip')}/dna/intent/api/v1/network-device"
        
         start_index = 1
         records_to_return = 500
@@ -407,7 +407,7 @@ def collect_ips_dnac(server_info):
                                         "hostname": device.get('hostname', device.get('managementIpAddress'))})
         return ip2hostname
     except Exception as e:
-        print('error occured: {e}')
+        print(f'error occured: {e}')
         logging.error(f'Failed to collect devices from DNAC with an error: {e}')
         return ip2hostname
 
