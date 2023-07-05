@@ -1,4 +1,4 @@
- Zimport requests
+import requests
 import getpass
 import time
 import logging
