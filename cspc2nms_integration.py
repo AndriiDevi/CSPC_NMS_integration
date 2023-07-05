@@ -617,7 +617,7 @@ def main():
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 ip, hostname = row
-                ip_hostname_list.append({"ip": ip, "hostname": hostname})
+                ip_hostname_manual_list.append({"ip": ip, "hostname": hostname})
         final_device_count = 0
         written_ips = set()  # Set to store written IP addresses
         written_hostnames = set()  # Set to store written hostnames
