@@ -532,7 +532,7 @@ def server_connectivity_check(server_info):
 
 
 def config():
-    """this function will open config file (config2.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
+    """this function will open config file (config.json) to get config data related to servers. In case such file does not exists user will be prompted to add such details"""
     if os.path.isfile('config.json'):
         print('Configuration file exists!')
         logging.info('Configuration file exists!')
@@ -595,7 +595,7 @@ def config():
                 print("exiting the program")
                 return None
             elif command == "c":
-                with open("config2.json", "w") as file:
+                with open("config.json", "w") as file:
                     file.write(json.dumps(config_data))
                     print("configuration file config2.json has been created")
                     break
