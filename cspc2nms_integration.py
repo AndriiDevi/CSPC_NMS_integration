@@ -31,7 +31,7 @@ class SolarWindsAPI:
         ip2hostname = []
         devices = []
         while True:
-            response = requests.get(self.base_url, params=params, auth=(self.username, self.password))
+            response = requests.get(self.base_url, params=params, auth=(self.username, self.password),verify=False)
             data = response.json()
             devices += data['results']
             if len(data['results']) < params['pageSize']:
@@ -52,7 +52,7 @@ class SolarWindsAPI:
             'query': 'SELECT TOP 1 EngineID,EngineVersion FROM Orion.Engines ORDER BY EngineID'
         }
         try:
-            response = requests.get(self.base_url, params=params, auth=(self.username, self.password), timeout=10)
+            response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False, timeout=10)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
