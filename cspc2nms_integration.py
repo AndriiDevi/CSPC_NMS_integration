@@ -59,7 +59,7 @@ class SolarWindsAPI:
                     f" Connection to {self.server_type} server: {self.ip} was SUCCESSFUL. Added server to the configuration ")
                 print("--------------------------------------------------------------------------------------------")
                 self.connectivity = True
-                print(f'response.json()')
+                print(f'your SolaWinds version below: /n{response.json()}')
             else:
                 print(
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
