@@ -15,7 +15,7 @@ class SolarWindsAPI:
         self.ip = server_config.get('server_ip')
         self.connectivity = False
         self.max_limit = 50
-        self.port = 17774
+        self.port = 17778
         self.username = server_config.get('server_u')
         self.password = server_config.get('server_p')
         self.base_url = f'https://{self.ip}:{self.port}/SolarWinds/InformationService/v3/Json/Query'
