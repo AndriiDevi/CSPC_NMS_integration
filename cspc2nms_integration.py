@@ -22,12 +22,10 @@ class SolarWindsAPI:
 
 
     def get_all_node_ips(self):
-        params = {
-            'query': "IPAddress, Status, Vendor FROM Orion.Nodes WHERE Vendor='Cisco'",
-            'pageSize': 1000,  # Number of records per page
-            'page': 1  # Starting page
+        params = {"query": "SELECT IPAddress, Status, Vendor FROM Orion.Nodes WHERE Vendor='Cisco'",
+            "pageSize": 1000,
+            "page": 1
         }
-
         ip2hostname = []
         devices = []
         while True:
