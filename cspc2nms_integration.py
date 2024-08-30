@@ -367,8 +367,7 @@ class SDwanApi:
     
         
         if self.token is not None:
-                header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
-        
+            header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
             result = requests.get(url=f"https://{self.ip)}/dataservice/device", headers=header,
                               verify=False)
             if result.ok:
