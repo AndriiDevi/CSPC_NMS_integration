@@ -575,7 +575,7 @@ def server_connectivity_check(server_info):
                 f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')} , error: {check_connectivity.status_code}, please check credentials or user role or firewall")
             return False
     elif server_info.get("server_type") == "SD-WAN":
-        sdwan_server = SdwanApi(server_info)
+        sdwan_server = SDwanApi(server_info)
         sdwan_server.check_connectivity()
         if sdwan_server.connectivity:
             return True
@@ -726,7 +726,7 @@ def main():
                             else:
                                 logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'SD-WAN':
-                    sdwan_server = SdwanApi(server)
+                    sdwan_server = SDwanApi(server)
                     sdwan_server.get_jsessionid()
                     sdwan_server.get_token()
                     dict_ip_2_hostname =sdwan_server.collect_ips_sd_wan()
