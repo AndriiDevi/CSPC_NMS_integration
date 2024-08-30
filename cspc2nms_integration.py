@@ -303,7 +303,7 @@ class NetboxAPI:
         return ip2hostname
 
 
-class SD_wan_authentication:
+class SDwanApi:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
         self.connectivity = False
@@ -607,8 +607,7 @@ def server_connectivity_check(server_info):
                 f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')} , error: {check_connectivity.status_code}, please check credentials or user role or firewall")
             return False
     elif server_info.get("server_type") == "SD-WAN":
-        Auth = SD_wan_authentication()
-        sdwan_server = NetboxAPI(server_info)
+        sdwan_server = SdwanApi(server_info)
         sdwan_server.check_connectivity()
         if sdwan_server.connectivity:
             return True
@@ -759,10 +758,10 @@ def main():
                             else:
                                 logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'SD-WAN':
-                    sdwan_server = NetboxAPI(server)
+                    sdwan_server = SdwanApi(server)
                     sdwan_server.get_jsessionid()
                     sdwan_server.get_token()
-                    dict_ip_2_hostname= sdwan_server.collect_ips_sd_wan()
+                    dict_ip_2_hostname =sdwan_server.collect_ips_sd_wan()
                     for i in dict_ip_2_hostname:
                         ip = i.get('ip')
                         hostname = i.get('hostname')
