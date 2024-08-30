@@ -304,45 +304,94 @@ class NetboxAPI:
 
 
 class SD_wan_authentication:
-    @staticmethod
-    def get_jsessionid(vmanage_host, vmanage_port, username, password):
-        api = "/j_security_check"
-        base_url = f"https://{vmanage_host}:{vmanage_port}"
-        url = base_url + api
-        payload = {'j_username': username, 'j_password': password}
+    def __init__(self, server_config):
+        self.server_type = server_config.get('server_type')
+        self.connectivity = False
+        self.username = server_config.get('server_u')
+        self.password = server_config.get('server_p')
+        self.ip = server_config.get('server_ip')
+        self.port = server_config.get('port', '443')
+        self.base_url = f"https://{self.ip}:{self.port}"
+        self.authendpoint = "/j_security_check"
+        self.tokenendpoint = "/dataservice/client/token"
+    def check_connectivity(self):
+        url = self.base_url + self.authendpoint
+        payload = {'j_username': self.username, 'j_password': self.password}
 
         response = requests.post(url=url, data=payload, verify=False)
         if response.ok:
             try:
                 cookies = response.headers["Set-Cookie"]
                 jsessionid = cookies.split(";")
-                return (jsessionid[0])
+                self.connectivity = True
             except:
                 logging.error("No valid JSESSION ID returned")
                 print("No valid JSESSION ID returned\n")
-                return None
         else:
             print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
-            return None
+    def get_jsessionid(self):
+        url = self.base_url + self.authendpoint
+        payload = {'j_username': self.username, 'j_password': self.password}
 
-    @staticmethod
-    def get_token(vmanage_host, vmanage_port, jsessionid):
-        headers = {'Cookie': jsessionid}
-        base_url = f"https://{vmanage_host}:{vmanage_port}"
-        api = "/dataservice/client/token"
-        url = base_url + api
+        response = requests.post(url=url, data=payload, verify=False)
+        if response.ok:
+            try:
+                cookies = response.headers["Set-Cookie"]
+                jsessionid = cookies.split(";")
+                self.jsessionid = jsessionid[0]
+            except:
+                logging.error("No valid JSESSION ID returned")
+                print("No valid JSESSION ID returned\n")
+        else:
+            
+            print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
+            logging.error(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
+
+    def get_token(self):
+        headers = {'Cookie': self.jsessionid}
+        url = self.base_url + self.tokenendpoint
         response = requests.get(url=url, headers=headers, verify=False)
         if response.status_code == 200:
-            return (response.text)
+            self.token = response.text
+            
         else:
+            print(f"unable to issue token: {response.status_code}")
+            loggin.error(f"unable to issue token: {response.status_code}")
+            logging.error(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
+
+
+    def collect_ips_sd_wan(self):
+    """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
+    print(f"retrieving data from {self.server_type} server: {self.ip}")
+    ip2hostname = []
+    
+    if self.jsessionid:
+        token = Auth.get_token(server_info.get('server_ip'), server_info.get('port'), jsessionid)
+        if token is not None:
+            header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
+        else:
+            header = {'Content-Type': "application/json", 'Cookie': jsessionid}
+        result = requests.get(url=f"https://{self.ip)}/dataservice/device", headers=header,
+                              verify=False)
+        if result.ok:
+            device_list = result.json().get("data")
+            for device in device_list:
+                if device.get("reachability") != "reachable":
+                    logging.error(f"device: {device.get('system-ip')} is not reachable")
+                elif device.get('system-ip'):
+                    ip2hostname.append(
+                        {"ip": device.get('system-ip'), "hostname": device.get("host-name", device.get('system-ip'))})
+            return ip2hostname
+        else:
+            logging.error(f"devices API call got failed with en error {result.status_code}")
             return None
-
-
+    else:
+        print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
+        return None
 def collect_ips_sd_wan(server_info):
     """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
     print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
     ip2hostname = []
-    Auth = SD_wan_authentication()
     jsessionid = Auth.get_jsessionid(server_info.get('server_ip'), server_info.get('port'), server_info.get('server_u'),
                                      server_info.get('server_p'))
     if jsessionid:
@@ -559,17 +608,11 @@ def server_connectivity_check(server_info):
             return False
     elif server_info.get("server_type") == "SD-WAN":
         Auth = SD_wan_authentication()
-        jsessionid = Auth.get_jsessionid(server_info.get('server_ip'), server_info.get('port'),
-                                         server_info.get('server_u'), server_info.get('server_p'))
-        if jsessionid:
-            print("--------------------------------------------------------------------------------------------")
-            print(
-                f" Connection to {server_info.get('server_type')} server: {server_info.get('server_ip')} was SUCCESSFUL. Added server to the configuration ")
-            print("--------------------------------------------------------------------------------------------")
+        sdwan_server = NetboxAPI(server_info)
+        sdwan_server.check_connectivity()
+        if sdwan_server.connectivity:
             return True
         else:
-            print(
-                f"!!!Warning!!!, I was not able to connect to {server_info.get('server_type')} server {server_info.get('server_ip')}, please check credentials or user role or firewall")
             return False
     elif server_info.get("server_type") == "NETBOX":
         netbox_server = NetboxAPI(server_info)
@@ -716,18 +759,20 @@ def main():
                             else:
                                 logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'SD-WAN':
-                    dict_ip_2_hostname = collect_ips_sd_wan(server)
-                    if dict_ip_2_hostname:
-                        for i in dict_ip_2_hostname:
-                            ip = i.get('ip')
-                            hostname = i.get('hostname')
-                            if ip not in written_ips and hostname not in written_hostnames:
-                                file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
-                                final_device_count += 1
-                                written_ips.add(ip)
-                                written_hostnames.add(hostname)
-                            else:
-                                logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
+                    sdwan_server = NetboxAPI(server)
+                    sdwan_server.get_jsessionid()
+                    sdwan_server.get_token()
+                    dict_ip_2_hostname= sdwan_server.collect_ips_sd_wan()
+                    for i in dict_ip_2_hostname:
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
                 elif server.get('server_type') == 'DNAC':
                     dict_ip_2_hostname = collect_ips_dnac(server)
                     for i in dict_ip_2_hostname:
