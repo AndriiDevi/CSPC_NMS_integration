@@ -361,62 +361,32 @@ class SDwanApi:
 
 
     def collect_ips_sd_wan(self):
-    """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
-    print(f"retrieving data from {self.server_type} server: {self.ip}")
-    ip2hostname = []
+        """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
+        print(f"retrieving data from {self.server_type} server: {self.ip}")
+        ip2hostname = []
     
-    if self.jsessionid:
-        token = Auth.get_token(server_info.get('server_ip'), server_info.get('port'), jsessionid)
-        if token is not None:
-            header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
-        else:
-            header = {'Content-Type': "application/json", 'Cookie': jsessionid}
-        result = requests.get(url=f"https://{self.ip)}/dataservice/device", headers=header,
+        
+        if self.token is not None:
+                header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
+        
+            result = requests.get(url=f"https://{self.ip)}/dataservice/device", headers=header,
                               verify=False)
-        if result.ok:
-            device_list = result.json().get("data")
-            for device in device_list:
-                if device.get("reachability") != "reachable":
-                    logging.error(f"device: {device.get('system-ip')} is not reachable")
-                elif device.get('system-ip'):
-                    ip2hostname.append(
-                        {"ip": device.get('system-ip'), "hostname": device.get("host-name", device.get('system-ip'))})
-            return ip2hostname
+            if result.ok:
+                device_list = result.json().get("data")
+                for device in device_list:
+                    if device.get("reachability") != "reachable":
+                        logging.error(f"device: {device.get('system-ip')} is not reachable")
+                    elif device.get('system-ip'):
+                        ip2hostname.append(
+                            {"ip": device.get('system-ip'), "hostname": device.get("host-name", device.get('system-ip'))})
+                return ip2hostname
+            else:
+                logging.error(f"devices API call got failed with en error {result.status_code}")
+                return None
         else:
-            logging.error(f"devices API call got failed with en error {result.status_code}")
+            print(f"not able to login to {self.server_type}: {self.ip}")
             return None
-    else:
-        print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
-        return None
-def collect_ips_sd_wan(server_info):
-    """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
-    print(f"retrieving data from {server_info.get('server_type')} server: {server_info.get('server_ip')}")
-    ip2hostname = []
-    jsessionid = Auth.get_jsessionid(server_info.get('server_ip'), server_info.get('port'), server_info.get('server_u'),
-                                     server_info.get('server_p'))
-    if jsessionid:
-        token = Auth.get_token(server_info.get('server_ip'), server_info.get('port'), jsessionid)
-        if token is not None:
-            header = {'Content-Type': "application/json", 'Cookie': jsessionid, 'X-XSRF-TOKEN': token}
-        else:
-            header = {'Content-Type': "application/json", 'Cookie': jsessionid}
-        result = requests.get(url=f"https://{server_info.get('server_ip')}/dataservice/device", headers=header,
-                              verify=False)
-        if result.ok:
-            device_list = result.json().get("data")
-            for device in device_list:
-                if device.get("reachability") != "reachable":
-                    logging.error(f"device: {device.get('system-ip')} is not reachable")
-                elif device.get('system-ip'):
-                    ip2hostname.append(
-                        {"ip": device.get('system-ip'), "hostname": device.get("host-name", device.get('system-ip'))})
-            return ip2hostname
-        else:
-            logging.error(f"devices API call got failed with en error {result.status_code}")
-            return None
-    else:
-        print(f"not able to login to {server_info.get('server_type')}: {server_info.get('server_ip')}")
-        return None
+
 
 
 def collect_ips_dnac1(server_info):
