@@ -733,7 +733,7 @@ def config():
 
                 config = {}
                 server_type = input(
-                    "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \n 6 - add CDO server \n 7 - add SOLARWINDS server \n Please provide server type: ").strip()
+                    "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \n 6 - add CDO server \n 7 - add SOLARWINDS server \n 8 - add ISE server \n Please provide server type: ").strip()
                 if not server_type or server_type not in ("1", "2", "3", "4", "5", "6", "7","8"):
                     break
                 config["server_type"] = servers.get(server_type)
