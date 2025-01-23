@@ -8,6 +8,7 @@ import os
 import subprocess
 import urllib3
 
+
 class SolarWindsAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -20,16 +21,15 @@ class SolarWindsAPI:
         self.password = server_config.get('server_p')
         self.base_url = f'https://{self.ip}:{self.port}/SolarWinds/InformationService/v3/Json/Query'
 
-
     def get_all_node_ips(self):
         params = {"query": "SELECT IPAddress, Status, Vendor FROM Orion.Nodes WHERE Vendor='Cisco'",
-            "pageSize": 1000,
-            "page": 1
-        }
+                  "pageSize": 1000,
+                  "page": 1
+                  }
         ip2hostname = []
         devices = []
         while True:
-            response = requests.get(self.base_url, params=params, auth=(self.username, self.password),verify=False)
+            response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False)
             data = response.json()
             devices += data['results']
             if len(data['results']) < params['pageSize']:
@@ -50,7 +50,8 @@ class SolarWindsAPI:
             'query': 'SELECT TOP 1 EngineID,EngineVersion FROM Orion.Engines ORDER BY EngineID'
         }
         try:
-            response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False, timeout=10)
+            response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False,
+                                    timeout=10)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -63,6 +64,98 @@ class SolarWindsAPI:
                     f"!!!Warning!!!, I was not able to connect to {self.server_type} server {self.ip} , error: {response.status_code}, please check credentials or user role")
         except Exception as e:
             print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
+
+
+class IseApi:
+    def __init__(self, server_config):
+        self.server_type = server_config.get('server_type')
+        self.token = server_config.get('token')
+        self.ip = server_config.get('server_ip')
+        self.connectivity = False
+        self.verify = False
+        self.max_limit = 100
+        self.port = 9060
+        self.username = server_config.get('server_u')
+        self.password = server_config.get('server_p')
+        self.auth = (self.username, self.password)
+        self.url = f'https://{self.ip}:{self.port}'
+        if not self.verify:
+            import urllib3
+            urllib3.disable_warnings()
+
+
+    def check_connectivity(self):
+        s = requests.Session()
+        s.auth = self.auth
+        s.headers.update({'accept': "application/json", 'cache-control': "no-cache"})
+
+        # Check connectivity by making a test request to a known reliable URL
+        try:
+            response = s.get(f'https://{self.ip}/ers/config/endpoint/version', timeout=10)  # Use a reliable URL
+            response.raise_for_status()  # Raises an HTTPError if the HTTP request returned an unsuccessful status code
+            print("--------------------------------------------------------------------------------------------")
+            print(
+                f" Connection to {self.server_type} server: {self.ip} was SUCCESSFUL. Added server to the configuration ")
+            print("--------------------------------------------------------------------------------------------")
+            self.connectivity = True
+        except requests.exceptions.RequestException as e:
+            self.connectivity = False
+            print(f'Unable to connect to  {self.server_type} server {self.ip}, please check firewall/proxy\nerror: {e}')
+            # Handle the connectivity issue as needed (e.g., log the error)
+
+        return s
+    def _session(self):
+        s = requests.Session()
+        s.auth = self.auth
+        s.headers.update({'accept': "application/json", 'cache-control': "no-cache"})
+        return s
+
+    def _get(self, s, url):
+        print(f"Fetching URL: {url}")  # Replace logging with a simple print statement
+        res = s.get(url, verify=self.verify)  # Use self.verify directly
+        if res.status_code != 200:
+            print(f"Failed to fetch data: {res.status_code}")
+            raise RuntimeError(f"Failed to fetch data: {res.status_code}")
+        jsondata = json.loads(res.text)
+        return jsondata
+
+    def get_all_network_elements(self):
+        all_devices = self.network_device_get_all()
+        print(all_devices)
+        print('===================================================================')
+        s = self._session()
+        ip2hostname = []
+
+        # Extract IP addresses and hostnames from all devices
+        for resource in all_devices['SearchResult']['resources']:
+            jsondata = self._get(s, resource['link']['href'])
+            print(jsondata)
+
+            # Extract the IP address and hostname from each NetworkDevice
+            device = jsondata['NetworkDevice']
+            ip_address = device.get('NetworkDeviceIPList', [{}])[0].get('ipaddress', '')
+            hostname = device.get('name', '')
+
+            # Append the IP and hostname to ip2hostname list
+            ip2hostname.append({"ip": ip_address, "hostname": hostname})
+        s.close()
+        return ip2hostname
+
+    def network_device_get_all(self):
+        path = '/ers/config/networkdevice'
+        s = self._session()
+        full_url = f'{self.url}{path}?size={self.max_limit}'
+        jsondata = self._get(s, full_url)
+        all_devices = jsondata
+        while True:
+            if 'nextPage' in jsondata['SearchResult']:
+                full_url = jsondata['SearchResult']['nextPage']['href']
+                jsondata = self._get(s, full_url)
+                all_devices['SearchResult']['resources'] += jsondata['SearchResult']['resources']
+            else:
+                break
+        s.close()
+        return all_devices
 class CdoAPI:
     def __init__(self, server_config):
         self.server_type = server_config.get('server_type')
@@ -314,6 +407,7 @@ class SDwanApi:
         self.base_url = f"https://{self.ip}:{self.port}"
         self.authendpoint = "/j_security_check"
         self.tokenendpoint = "/dataservice/client/token"
+
     def check_connectivity(self):
         url = self.base_url + self.authendpoint
         payload = {'j_username': self.username, 'j_password': self.password}
@@ -328,7 +422,8 @@ class SDwanApi:
                 logging.error("No valid JSESSION ID returned")
                 print("No valid JSESSION ID returned\n")
         else:
-            print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
+            print(f"connection to {self.ip} got failed with en error: {response.status_code}")
+
     def get_jsessionid(self):
         url = self.base_url + self.authendpoint
         payload = {'j_username': self.username, 'j_password': self.password}
@@ -343,9 +438,9 @@ class SDwanApi:
                 logging.error("No valid JSESSION ID returned")
                 print("No valid JSESSION ID returned\n")
         else:
-            
-            print(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
-            logging.error(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
+
+            print(f"connection to {self.ip} got failed with en error: {response.status_code}")
+            logging.error(f"connection to {self.ip} got failed with en error: {response.status_code}")
 
     def get_token(self):
         headers = {'Cookie': self.jsessionid}
@@ -353,19 +448,17 @@ class SDwanApi:
         response = requests.get(url=url, headers=headers, verify=False)
         if response.status_code == 200:
             self.token = response.text
-            
+
         else:
             print(f"unable to issue token: {response.status_code}")
-            loggin.error(f"unable to issue token: {response.status_code}")
-            logging.error(f"connection to {vmanage_host} got failed with en error: {response.status_code}")
-
+            logging.error(f"unable to issue token: {response.status_code}")
+            logging.error(f"connection to {self.ip} got failed with en error: {response.status_code}")
 
     def collect_ips_sd_wan(self):
         """this function will check all devices and return dictionary with {"ip":"value","hostname":"value"}"""
         print(f"retrieving data from {self.server_type} server: {self.ip}")
         ip2hostname = []
-    
-        
+
         if self.token is not None:
             header = {'Content-Type': "application/json", 'Cookie': self.jsessionid, 'X-XSRF-TOKEN': self.token}
             result = requests.get(url=f"https://{self.ip}/dataservice/device", headers=header, verify=False)
@@ -376,7 +469,8 @@ class SDwanApi:
                         logging.error(f"device: {device.get('system-ip')} is not reachable")
                     elif device.get('system-ip'):
                         ip2hostname.append(
-                            {"ip": device.get('system-ip'), "hostname": device.get("host-name", device.get('system-ip'))})
+                            {"ip": device.get('system-ip'),
+                             "hostname": device.get("host-name", device.get('system-ip'))})
                 return ip2hostname
             else:
                 logging.error(f"devices API call got failed with en error {result.status_code}")
@@ -384,7 +478,6 @@ class SDwanApi:
         else:
             print(f"not able to login to {self.server_type}: {self.ip}")
             return None
-
 
 
 def collect_ips_dnac1(server_info):
@@ -476,11 +569,11 @@ def collect_ips_dnac(server_info):
             # Increment the start index for the next page
             start_index += records_to_return
             print(f"incrementing index: {start_index}")
-        #all_devices_filtered = [device for device in all_devices if
+        # all_devices_filtered = [device for device in all_devices if
         #                        "access point" not in device.get('type', '').lower()]
-        #all_devices_filtered = [device for device in all_devices if 
+        # all_devices_filtered = [device for device in all_devices if
         #                        device and "access point" not in device.get('type', '').lower()]
-        all_devices_filtered = [device for device in all_devices if 
+        all_devices_filtered = [device for device in all_devices if
                                 device.get('type') and "access point" not in device.get('type', '').lower()]
         print(f"filtered device count {len(all_devices_filtered)}")
         for device in all_devices_filtered:
@@ -628,12 +721,13 @@ def config():
                 "Commands: \na - add server\nc - create configuration file and run the script\ne - exit\nPlease enter command: ").strip().lower()
 
             if command == "a":
-                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5": "NETBRAIN", "6": "CDO", "7":"SOLARWINDS"}
+                servers = {"1": "EPNM/PI", "2": "DNAC", "3": "SD-WAN", "4": "NETBOX", "5": "NETBRAIN", "6": "CDO",
+                           "7": "SOLARWINDS", "8":"ISE"}
 
                 config = {}
                 server_type = input(
                     "\n Commands:\n 1 - add PI/EPNM server. \n 2 - add DNAC server. \n 3 - add SD-WAN server. \n 4 - add NETBOX server.\n 5 - add NETBRAIN server \n 6 - add CDO server \n 7 - add SOLARWINDS server \n Please provide server type: ").strip()
-                if not server_type or server_type not in ("1", "2", "3", "4", "5", "6", "7"):
+                if not server_type or server_type not in ("1", "2", "3", "4", "5", "6", "7","8"):
                     break
                 config["server_type"] = servers.get(server_type)
                 print(f"server type is {servers.get(server_type)}")
@@ -650,7 +744,7 @@ def config():
                     if not server_token:
                         break
                     config['token'] = server_token
-                if server_type in ("1", "2", "3", "5","7"):
+                if server_type in ("1", "2", "3", "5", "7","8"):
                     server_u = input("Please provide server User: ").strip()
                     if not server_u:
                         break
@@ -677,7 +771,7 @@ def config():
             elif command == "c":
                 with open("config.json", "w") as file:
                     file.write(json.dumps(config_data))
-                    print("configuration file config2.json has been created")
+                    print("configuration file config.json has been created")
                     break
 
             else:
@@ -696,7 +790,7 @@ def main():
         return False
     else:
         ip_hostname_manual_list = []
-        with open('cspc_manual_list.csv', "r") as file:
+        with open('cspc_manual_list.csv', "w") as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 ip, hostname = row
@@ -729,7 +823,7 @@ def main():
                     sdwan_server = SDwanApi(server)
                     sdwan_server.get_jsessionid()
                     sdwan_server.get_token()
-                    dict_ip_2_hostname =sdwan_server.collect_ips_sd_wan()
+                    dict_ip_2_hostname = sdwan_server.collect_ips_sd_wan()
                     for i in dict_ip_2_hostname:
                         ip = i.get('ip')
                         hostname = i.get('hostname')
@@ -805,6 +899,20 @@ def main():
                             written_hostnames.add(hostname)
                         else:
                             logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
+                elif server.get('server_type') == 'ISE':
+                    ise_server = IseApi(server)
+                    list_ip_2_hostname = ise_server.get_all_network_elements()
+                    for i in list_ip_2_hostname:
+                        ip = i.get('ip')
+                        hostname = i.get('hostname')
+                        if ip not in written_ips and hostname not in written_hostnames:
+                            file.write(f"{ip},{hostname},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,\n")
+                            final_device_count += 1
+                            written_ips.add(ip)
+                            written_hostnames.add(hostname)
+                        else:
+                            logging.warning(f"Duplicate entry skipped: IP={ip}, Hostname={hostname}")
+
                 logging.info(
                     f"======== Finished polling {server.get('server_type')} server: {server.get('server_ip')} ========")
         print("file finalseed.csv has been created")
