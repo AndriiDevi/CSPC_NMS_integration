@@ -702,6 +702,13 @@ def server_connectivity_check(server_info):
             return True
         else:
             return False
+    elif server_info.get("server_type") == "ISE":
+        ise_server = IseApi(server_info)
+        ise_server.check_connectivity()
+        if ise_server.connectivity:
+            return True
+        else:
+            return False
 
 
 def config():
