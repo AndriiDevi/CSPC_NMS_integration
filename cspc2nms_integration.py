@@ -133,11 +133,12 @@ class IseApi:
 
             # Extract the IP address and hostname from each NetworkDevice
             device = jsondata['NetworkDevice']
-            print(device)
+            #print(device)
             ip_address = device.get('NetworkDeviceIPList', [{}])[0].get('ipaddress', '')
             hostname = device.get('name', '')
 
             # Append the IP and hostname to ip2hostname list
+            print(f'appending: {ip_address}, hostname: {hostname}')
             ip2hostname.append({"ip": ip_address, "hostname": hostname})
         s.close()
         return ip2hostname
