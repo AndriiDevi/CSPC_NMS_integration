@@ -132,7 +132,7 @@ class IseApi:
             #print(jsondata)
 
             # Extract the IP address and hostname from each NetworkDevice
-            device = jsondata['NetworkDevice']
+            #device = jsondata['NetworkDevice']
             #print(device)
             ip_address = device.get('NetworkDeviceIPList', [{}])[0].get('ipaddress', '')
             hostname = device.get('name', '')
