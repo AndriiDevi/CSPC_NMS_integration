@@ -91,7 +91,7 @@ class IseApi:
 
         # Check connectivity by making a test request to a known reliable URL
         try:
-            response = s.get(f'https://{self.ip}/ers/config/endpoint/version', timeout=10)  # Use a reliable URL
+            response = s.get(f'{self.url}/ers/config/endpoint/version', timeout=10)  # Use a reliable URL
             response.raise_for_status()  # Raises an HTTPError if the HTTP request returned an unsuccessful status code
             print("--------------------------------------------------------------------------------------------")
             print(
