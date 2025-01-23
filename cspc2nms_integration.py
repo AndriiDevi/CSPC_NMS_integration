@@ -797,7 +797,7 @@ def main():
         return False
     else:
         ip_hostname_manual_list = []
-        with open('cspc_manual_list.csv', "w") as file:
+        with open('cspc_manual_list.csv', "r+") as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
                 ip, hostname = row
