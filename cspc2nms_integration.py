@@ -129,10 +129,11 @@ class IseApi:
         # Extract IP addresses and hostnames from all devices
         for resource in all_devices['SearchResult']['resources']:
             jsondata = self._get(s, resource['link']['href'])
-            print(jsondata)
+            #print(jsondata)
 
             # Extract the IP address and hostname from each NetworkDevice
             device = jsondata['NetworkDevice']
+            print(device)
             ip_address = device.get('NetworkDeviceIPList', [{}])[0].get('ipaddress', '')
             hostname = device.get('name', '')
 
@@ -144,7 +145,7 @@ class IseApi:
     def network_device_get_all(self):
         path = '/ers/config/networkdevice'
         s = self._session()
-        full_url = f'{self.url}{path}?size={self.max_limit}'
+        full_url = f'{self.url}{path}?size={self.max_limit}&filter=type.CONTAINS.cisco' # filtering cisco devices here
         jsondata = self._get(s, full_url)
         all_devices = jsondata
         while True:
