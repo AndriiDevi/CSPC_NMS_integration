@@ -357,7 +357,7 @@ class NetboxAPI:
     def check_connectivity(self):
         print(self.url_all_devices)
         try:
-            response = requests.get(self.url_all_devices, headers=self.headers, timeout=10)
+            response = requests.get(self.url_all_devices, headers=self.headers, timeout=10, verify=False)
             if response.status_code == 200:
                 print("--------------------------------------------------------------------------------------------")
                 print(
@@ -381,7 +381,7 @@ class NetboxAPI:
         url = self.url_all_devices
         while url:
             print(f'url: {url}')
-            response = requests.get(url, json=payload, headers=self.headers)
+            response = requests.get(url, json=payload, headers=self.headers, verify=False)
             if response.status_code == 200:
                 data = response.json()
 
