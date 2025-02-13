@@ -350,9 +350,10 @@ class NetboxAPI:
         self.port = server_config.get('port', '8000')
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': f'Token {self.token}'}
-        self.url_all_devices = f'https://{self.ip}/api/dcim/devices/?manufacturer=cisco&status=active&'
         self.connectivity = False
-        self.max_limit = 50
+        self.max_limit = 49
+        self.url_all_devices = f'https://{self.ip}/api/dcim/devices/?limit={self.max_limit}&manufacturer=cisco&status=active&'
+
 
     def check_connectivity(self):
         print(self.url_all_devices)
