@@ -802,7 +802,9 @@ def main():
         with open('cspc_manual_list.csv', "r+") as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
-                ip, hostname = row
+                #ip, hostname = row
+                # Only extract the first two elements to avoid extra commas
+                ip, hostname = row[0], row[1] 
                 ip_hostname_manual_list.append({"ip": ip, "hostname": hostname})
         final_device_count = 0
         written_ips = set()  # Set to store written IP addresses
