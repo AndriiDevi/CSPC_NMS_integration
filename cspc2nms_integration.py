@@ -394,8 +394,12 @@ class NetboxAPI:
                 return None
         print(f'all device count: {len(devices)}')
         for device in devices:
-            ip2hostname.append(
-                {"ip": device.get('primary_ip4').get('address').split('/')[0], "hostname": device.get("name")})
+            primary_ip4 = device.get('primary_ip4')
+            if primary_ip4 and primary_ip4.get('address'):
+                address = primary_ip4.get('address').split('/')[0]
+                hostname = device.get("name") or address  # Use IP as hostname if name is missing
+                ip2hostname.append({"ip": address, "hostname": hostname})
+
         return ip2hostname
 
 
