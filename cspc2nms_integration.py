@@ -255,7 +255,8 @@ class NetbrainAPI:
         self.group = server_config.get('group', '')
         self.port = server_config.get('port', '8000')
         self.headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        self.url_all_devices = f'https://{self.ip}/ServicesAPI/API/V1/CMDB/Devices/GroupDevices'
+        self.url_all_devices1 = f'https://{self.ip}/ServicesAPI/API/V1/CMDB/Devices/GroupDevices'
+        self.url_all_devices = f'https://{self.ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco
         self.url_initial_session = f'https://{self.ip}/ServicesAPI/API/V1/Session'
         self.connectivity = False
         self.max_limit = 50
