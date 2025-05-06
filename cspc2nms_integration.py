@@ -382,7 +382,7 @@ class NetbrainAPI:
                     print(f"Get Devices API url: {response.url} -  failed with error: {response.status_code}")
 
             for device in devices:
-                ip2hostname.append({"ip": device.get('mgmtIP'), "hostname": device.get("hostname")})
+                ip2hostname.append({"ip": device.get('mgmtIP'), "hostname": device.get("name")})
             print(f'all device count: {len(devices)}')
             logging.info(f'device count for {self.server_type} server {self.ip}: {len(devices)}')
             return ip2hostname
