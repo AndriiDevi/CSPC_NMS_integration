@@ -255,8 +255,8 @@ class NetbrainAPI:
         self.group = server_config.get('group', '')
         self.port = server_config.get('port', '8000')
         self.headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        self.url_all_devices1 = f'https://{self.ip}/ServicesAPI/API/V1/CMDB/Devices/GroupDevices'
-        self.url_all_devices = f'https://{self.ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco'
+        self.url_all_devices1 = f'http://{self.ip}/ServicesAPI/API/V1/CMDB/Devices/GroupDevices'
+        self.url_all_devices = f'http://{self.ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco'
         self.url_initial_session = f'https://{self.ip}/ServicesAPI/API/V1/Session'
         self.connectivity = False
         self.max_limit = 50
@@ -304,7 +304,67 @@ class NetbrainAPI:
             logging.error(
                 f"unable to create token for {self.server_type} server {self.ip} , error: {response.status_code} for url: {response.url}")
 
-    def get_all_devices(self):
+    import requests
+import logging
+
+def get_all_devices(self):
+    print(f"Fetching all devices with vendor=Cisco")
+    
+    devices = []  # List to store all devices
+    ip2hostname = []  # List to store IP-to-hostname mappings
+    base_url = self.url_all_devices  # Base URL: https://{ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco
+    page = 1  # Start with page 1
+    limit = self.max_limit  # Use max_limit from __init__ (50)
+
+    try:
+        while True:
+            # Construct URL with pagination
+            url = f"{base_url}&page={page}"
+            print(f"Fetching devices from URL: {url}")
+            logging.info(f"Fetching devices from {self.server_type} server at {self.ip}, URL: {url}")
+
+            # Make the API request
+            response = requests.get(url, headers=self.headers, verify=False)
+
+            if response.status_code == 200:
+                result = response.json()
+
+                # Add devices from the current page to the main list
+                devices_result = result.get("devices", [])
+                devices.extend(devices_result)
+                
+                print(f"Devices fetched: {len(devices_result)}, Page: {page}, Total so far: {len(devices)}")
+                logging.info(f"Devices fetched: {len(devices_result)} from {self.server_type} server {self.ip}, Page: {page}")
+
+                # Check if there are more pages
+                if len(devices_result) < limit:
+                    print("Fewer devices than limit, assuming end of results.")
+                    logging.info("Fewer devices than limit, assuming end of results.")
+                    break
+
+                # Increment page for the next iteration
+                page += 1
+            else:
+                print(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}")
+                logging.error(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}")
+                break
+
+        # Convert devices into IP-to-hostname mappings
+        for device in devices:
+            ip_address = device.get('mgmtIP')
+            hostname = device.get("hostname")
+            if ip_address:
+                ip2hostname.append({"ip": ip_address, "hostname": hostname})
+
+        print(f"Total devices retrieved: {len(devices)}")
+        logging.info(f"Total devices retrieved for {self.server_type} server {self.ip}: {len(devices)}")
+        return ip2hostname
+
+    except Exception as e:
+        logging.error(f"Unable to fetch devices from {self.server_type} server {self.ip}. Error: {str(e)}")
+        print(f"Error fetching devices: {e}")
+        return []
+    def get_all_devices2(self):
         print(f"Fetching all devices with vendor=Cisco")
     
         devices = []  # List to store all devices
