@@ -305,7 +305,6 @@ class NetbrainAPI:
                 f"unable to create token for {self.server_type} server {self.ip} , error: {response.status_code} for url: {response.url}")
 
 
-
     def get_all_devices(self):
         print(f"Fetching all devices with vendor=Cisco")
     
@@ -313,18 +312,20 @@ class NetbrainAPI:
         ip2hostname = []  # List to store IP-to-hostname mappings
         base_url = self.url_all_devices  # Base URL: https://{ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco
         skip = 0  # Start with skip=0
-        count = self.max_limit  # Expect up to 50 devices per page
+        max_limit = self.max_limit  # Expect up to 50 devices per page
+        max_iterations = 100  # Safety limit to prevent infinite loops
+        iteration = 1  # Track iterations for debugging
 
         try:
-            while count == self.max_limit:
+            while iteration <= max_iterations:
                 # Construct query parameters
                 data = {
                     "version": 1,
                     "skip": skip,
                     "fullattr": 1
                 }
-                print(f"Fetching devices from URL: {base_url}, skip={skip}")
-                logging.info(f"Fetching devices from {self.server_type} server at {self.ip}, skip={skip}")
+                print(f"Iteration {iteration}: Fetching devices from URL: {base_url}, params={data}")
+                logging.info(f"Iteration {iteration}: Fetching devices from {self.server_type} server at {self.ip}, params={data}")
 
                 # Make the API request
                 response = requests.get(base_url, params=data, headers=self.headers, verify=False)
@@ -333,23 +334,50 @@ class NetbrainAPI:
                     result = response.json()
 
                     # Log the full response for debugging
-                    print(f"API Response: {result}")
+                    #print(f"API Response: {result}")
                     logging.debug(f"API Response: {result}")
 
                     # Extract devices from the current page
                     devices_result = result.get("devices", [])
                     count = len(devices_result)
+
+                    # Check for empty response or no devices
+                    if not devices_result:
+                        print("No devices returned, ending pagination.")
+                        logging.info("No devices returned, ending pagination.")
+                        break
+
                     devices.extend(devices_result)
                 
                     print(f"Devices fetched: {count}, Skip: {skip}, Total so far: {len(devices)}")
                     logging.info(f"Devices fetched: {count} from {self.server_type} server {self.ip}, Skip: {skip}")
 
+                    # Check for pagination metadata (e.g., total or total_count)
+                    total_count = result.get("total", result.get("total_count", 0))
+                    if total_count > 0 and len(devices) >= total_count:
+                        print(f"Reached total count ({total_count}), ending pagination.")
+                        logging.info(f"Reached total count ({total_count}), ending pagination.")
+                        break
+
+                    # Break if fewer than max_limit devices are returned
+                    if count < max_limit:
+                        print("Fewer devices than limit, assuming end of results.")
+                        logging.info("Fewer devices than limit, assuming end of results.")
+                        break
+
                     # Increment skip for the next page
                     skip += count
+                    iteration += 1
                 else:
                     print(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}, Response: {response.text}")
                     logging.error(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}, Response: {response.text}")
                     break
+
+            # Check for duplicates to detect pagination issues
+            unique_devices = {device.get('mgmtIP') for device in devices if device.get('mgmtIP')}
+            if len(unique_devices) < len(devices):
+                print(f"Warning: Duplicate devices detected. Unique devices: {len(unique_devices)}, Total devices: {len(devices)}")
+                logging.warning(f"Duplicate devices detected. Unique devices: {len(unique_devices)}, Total devices: {len(devices)}")
 
             # Convert devices into IP-to-hostname mappings
             for device in devices:
@@ -358,8 +386,8 @@ class NetbrainAPI:
                 if ip_address:
                     ip2hostname.append({"ip": ip_address, "hostname": hostname})
 
-            print(f"Total devices retrieved: {len(devices)}")
-            logging.info(f"Total devices retrieved for {self.server_type} server {self.ip}: {len(devices)}")
+            print(f"Total devices retrieved: {len(devices)} (Unique: {len(unique_devices)})")
+            logging.info(f"Total devices retrieved for {self.server_type} server {self.ip}: {len(devices)} (Unique: {len(unique_devices)})")
             return ip2hostname
 
         except Exception as e:
