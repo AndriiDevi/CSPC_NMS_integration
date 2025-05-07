@@ -314,11 +314,9 @@ class NetbrainAPI:
         base_url = self.url_all_devices  # Base URL: https://{ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco
         skip = 0  # Start with skip=0
         count = self.max_limit  # Expect up to 50 devices per page
-        max_iterations = 100  # Safety limit to prevent infinite loops (adjust as needed)
 
         try:
-            iteration = 1
-            while count == self.max_limit and iteration <= max_iterations:
+            while count == self.max_limit:
                 # Construct query parameters
                 data = {
                     "version": 1,
@@ -348,7 +346,6 @@ class NetbrainAPI:
 
                     # Increment skip for the next page
                     skip += count
-                    iteration += 1
                 else:
                     print(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}, Response: {response.text}")
                     logging.error(f"Get Devices API failed. URL: {response.url}, Error: {response.status_code}, Response: {response.text}")
