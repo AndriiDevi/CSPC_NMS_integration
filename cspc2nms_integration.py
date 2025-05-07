@@ -307,7 +307,7 @@ class NetbrainAPI:
 
     def get_all_devices(self):
         print(f"Fetching all devices with vendor=Cisco")
-    
+        filter1 = {'vendor': 'Cisco'}
         devices = []  # List to store all devices
         ip2hostname = []  # List to store IP-to-hostname mappings
         base_url = self.url_all_devices  # Base URL: https://{ip}/ServicesAPI/API/V1/CMDB/Devices?vendor=Cisco
@@ -319,9 +319,11 @@ class NetbrainAPI:
         try:
             while iteration <= max_iterations:
                 # Construct query parameters
+                vendor = "Cisco"
                 data = {
                     "version": 1,
                     "skip": skip,
+                    "filter": json.dumps(filter1)
                     #"fullattr": 1
                 }
                 print(f"Iteration {iteration}: Fetching devices from URL: {base_url}, params={data}")
