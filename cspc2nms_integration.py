@@ -322,7 +322,7 @@ class NetbrainAPI:
                 data = {
                     "version": 1,
                     "skip": skip,
-                    "fullattr": 1
+                    #"fullattr": 1
                 }
                 print(f"Iteration {iteration}: Fetching devices from URL: {base_url}, params={data}")
                 logging.info(f"Iteration {iteration}: Fetching devices from {self.server_type} server at {self.ip}, params={data}")
@@ -382,7 +382,8 @@ class NetbrainAPI:
             # Convert devices into IP-to-hostname mappings
             for device in devices:
                 ip_address = device.get('mgmtIP')
-                hostname = device.get("hostname")
+                hostname = device.get("name")
+                print(f'ip: {ip_address}, hostname: {hostname}')
                 if ip_address:
                     ip2hostname.append({"ip": ip_address, "hostname": hostname})
 
