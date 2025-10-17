@@ -413,7 +413,7 @@ class NetbrainAPI:
                 vendor = "Cisco"
                 data = {
                     "version": 1,
-                    "path":f"Shared Device Groups/{self.group}"
+                    "path":f"Shared Device Groups/{self.group}",
                     "skip": skip,
                 }
                 print(f"Iteration {iteration}: Fetching devices from URL: {base_url}, params={data}")
