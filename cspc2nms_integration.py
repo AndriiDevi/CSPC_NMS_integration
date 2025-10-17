@@ -472,7 +472,7 @@ class NetbrainAPI:
                 logging.warning(f"Duplicate devices detected. Unique devices: {len(unique_devices)}, Total devices: {len(devices)}")
 
             # Convert devices into IP-to-hostname mappings
-            print(======= Converting  devices into IP-to-hostname mappings ========)
+            print('======= Converting  devices into IP-to-hostname mappings ========')
             for device in devices:
                 print(f'row in devices: {device}')
                 ip_address = device.get('mgmtIP')
