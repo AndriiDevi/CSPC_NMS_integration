@@ -404,7 +404,7 @@ class NetbrainAPI:
         base_url = self.url_group_devices  # Base URL: 
         skip = 0  # Start with skip=0
         max_limit = self.max_limit  # Expect up to 50 devices per page
-        max_iterations = 100  # Safety limit to prevent infinite loops
+        max_iterations = 1  # Safety limit to prevent infinite loops
         iteration = 1  # Track iterations for debugging
 
         try:
@@ -472,9 +472,11 @@ class NetbrainAPI:
                 logging.warning(f"Duplicate devices detected. Unique devices: {len(unique_devices)}, Total devices: {len(devices)}")
 
             # Convert devices into IP-to-hostname mappings
+            print(======= Converting  devices into IP-to-hostname mappings ========)
             for device in devices:
+                print(f'row in devices: {device}')
                 ip_address = device.get('mgmtIP')
-                hostname = device.get("name")
+                hostname = device.get("hostname")
                 print(f'ip: {ip_address}, hostname: {hostname}')
                 if ip_address:
                     ip2hostname.append({"ip": ip_address, "hostname": hostname})
