@@ -32,7 +32,7 @@ class SolarWindsAPI:
             response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False)
             data = response.json()
             print(params['pageSize'])
-            logging.info(f'param page size: {params['pageSize']}')
+            logging.info(f"param page size: {params['pageSize']}")
             devices += data['results']
             if len(data['results']) < params['pageSize']:
                 break
