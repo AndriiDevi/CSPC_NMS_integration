@@ -16,7 +16,7 @@ class SolarWindsAPI:
         self.ip = server_config.get('server_ip')
         self.connectivity = False
         self.max_limit = 50
-        self.port = 17778
+        self.port = 17774
         self.username = server_config.get('server_u')
         self.password = server_config.get('server_p')
         self.base_url = f'https://{self.ip}:{self.port}/SolarWinds/InformationService/v3/Json/Query'
@@ -30,7 +30,9 @@ class SolarWindsAPI:
         devices = []
         while True:
             response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False)
+            print(self.base_url)
             data = response.json()
+            print(data)
             devices += data['results']
             if len(data['results']) < params['pageSize']:
                 break
