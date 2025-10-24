@@ -30,9 +30,9 @@ class SolarWindsAPI:
         devices = []
         while True:
             response = requests.get(self.base_url, params=params, auth=(self.username, self.password), verify=False)
-            print(self.base_url)
             data = response.json()
-            print(data)
+            print(params['pageSize'])
+            logging.info(f'param page size: {params['pageSize']}')
             devices += data['results']
             if len(data['results']) < params['pageSize']:
                 break
@@ -42,6 +42,7 @@ class SolarWindsAPI:
             if device.get('status') == 2:
                 logging.error(f"device: {device.get('IPAddress')} is not reachable, excluding from seed")
             else:
+                logging.info(f"adding device: {device.get('IPAddress')}: {device.get('IPAddress')}")
                 ip2hostname.append({'ip': device.get('IPAddress'), 'hostname': device.get('IPAddress')})
 
         return ip2hostname
